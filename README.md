@@ -1,2 +1,5 @@
-# ns3-mod
-ns-3.36.1 for research use, repo contains official ns-3.36.1 code as well as custom editions
+
+The Network Simulator, Version 3
+================================
+ 
+ns-3.36.1 official source code + customizations
