@@ -25,10 +25,10 @@ main (int argc, char *argv[])
   
   Time::SetResolution (Time::NS);
   
-    LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
-    LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+    // LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    // LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
     LogComponentEnable("TrafficControlHelper", LOG_LEVEL_ALL);
-    LogComponentEnable("AdaptiveFifoQueueDisc", LOG_LEVEL_ALL); 
+    // LogComponentEnable("AdaptiveFifoQueueDisc", LOG_LEVEL_ALL); 
 
   NodeContainer nodes;
   nodes.Create (2);
@@ -39,6 +39,19 @@ main (int argc, char *argv[])
 
     NetDeviceContainer devices;
     devices = pointToPoint.Install (nodes);
+
+    // Remove any existing queue disc that might be installed
+    for (NetDeviceContainer::Iterator i = devices.Begin(); i != devices.End(); ++i) {
+        Ptr<NetDevice> device = *i;
+        Ptr<TrafficControlLayer> tcLayer = device->GetNode()->GetObject<TrafficControlLayer>();
+
+        if (tcLayer != nullptr) {
+            Ptr<QueueDisc> rootDisc = tcLayer->GetRootQueueDiscOnDevice(device);
+            if (rootDisc != nullptr) {
+                tcLayer->DeleteRootQueueDiscOnDevice(device);  // Remove existing queue disc
+            }
+        }
+    }
 
     TrafficControlHelper tch;
     tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc");

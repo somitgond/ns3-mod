@@ -4,6 +4,7 @@ build_lib(
     helper/queue-disc-container.cc
     helper/traffic-control-helper.cc
     model/cobalt-queue-disc.cc
+    model/adaptive-fifo-queue-disc.cc
     model/codel-queue-disc.cc
     model/fifo-queue-disc.cc
     model/fq-cobalt-queue-disc.cc
@@ -21,6 +22,7 @@ build_lib(
   HEADER_FILES
     helper/queue-disc-container.h
     helper/traffic-control-helper.h
+    model/adaptive-fifo-queue-disc.h
     model/cobalt-queue-disc.h
     model/codel-queue-disc.h
     model/fifo-queue-disc.h
