@@ -3,6 +3,9 @@
 
 # ignore results
 tcp-dumbbell*
+
+# ignore build directory
+build/
 # Prerequisites
 *.d
 
