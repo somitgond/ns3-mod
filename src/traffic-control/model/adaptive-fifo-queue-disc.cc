@@ -150,12 +150,13 @@ void AdaptiveFifoQueueDisc::AdjustQueueSize() {
         uint32_t newSize = currentMaxSizeValue + 10;
         SetMaxSize(QueueSize(QueueSizeUnit::PACKETS, newSize));
         NS_LOG_INFO("Increased MaxSize to: " << newSize);
+        NS_LOG_UNCOND("Increased MaxSize to: " << newSize);
     } 
     else if (currentQueueSize < m_adaptationThreshold / 2 && currentMaxSize.GetValue() > 20) {
         // Decrease queue size dynamically
         uint32_t newSize = currentMaxSizeValue - 10;
         SetMaxSize(QueueSize(QueueSizeUnit::PACKETS, newSize));
-        NS_LOG_INFO("Decreased MaxSize to: " << newSize);
+        NS_LOG_UNCOND("Decreased MaxSize to: " << newSize);
     }
 
     // Reschedule the next adaptation

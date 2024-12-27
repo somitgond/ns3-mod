@@ -48,11 +48,6 @@ Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
 uint64_t droppedPackets;
 Ptr<OutputStreamWrapper> dropped_stream;
 
-static void
-changeQueueSize(Ptr<QueueDisc> queueDisc, uint32_t newSize){
-    queueDisc->SetMaxSize(QueueSize(QueueSizeUnit::PACKETS, newSize));
-    NS_LOG_UNCOND("Queue Size changed to "<<newSize);
-}
 
 static void
 plotQsizeChange (uint32_t oldQSize, uint32_t newQSize){
@@ -147,7 +142,7 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queue_size = "2084p";
+    std::string queue_size = "500p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -156,32 +151,32 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
-    float stop_time = 1000;
+    float stop_time = 300;
     float start_time = 0;
     float start_tracing_time = 10;
     bool enable_bot_trace = true;
 
     CommandLine cmd (__FILE__);
-    cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
-    cmd.AddValue ("del_ack_count", "del Ack Count", del_ack_count);
-    cmd.AddValue ("cleanup_time", "Clean up time before simulation ends", cleanup_time);
-    cmd.AddValue ("initial_cwnd", "Initial cwnd Size", initial_cwnd);
-    cmd.AddValue ("bytes_to_send", "Bytes to send using BulkSend", bytes_to_send);
-    //cmd.AddValue ("tcp_type_id", "Flavour of TCP to use", tcp_type_id);
-    cmd.AddValue ("queue_disc", "queue Discipline to use", queue_disc);
-    cmd.AddValue ("queue_size", "Queue size at router", queue_size);
-    cmd.AddValue ("RTT", "Round Trip Time for a packet", RTT);
-    cmd.AddValue ("bottleneck_bandwidth", "Bandwidth of the bottleneck link", bottleneck_bandwidth);
-    cmd.AddValue ("bottleneck_delay", "Delay of Bandwidth Link", bottleneck_delay);
-    cmd.AddValue ("access_bandwidth", "Bandwidth of the branches", access_bandwidth);
-    cmd.AddValue ("root_dir", "Root Directory of Project", root_dir);
-    cmd.AddValue ("qsize_trace_filename", "FileName to store qsize trace", qsize_trace_filename);
-    cmd.AddValue ("dropped_trace_filename", "FileName to store dropped packets", dropped_trace_filename);
-    cmd.AddValue ("bottleneck_tx_filename", "FileName to store bottlneck tra", bottleneck_tx_filename);
-    cmd.AddValue ("stop_time", "Simulation stop time", stop_time);
-    cmd.AddValue ("start_time", "Simulation Start Time", start_time);
-    cmd.AddValue ("start_tracing_time", "Time to wait before tracing", start_tracing_time);
-    cmd.AddValue ("enable_bot_trace", "Enable Tracing for whole simulation", enable_bot_trace);
+    // cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
+    // cmd.AddValue ("del_ack_count", "del Ack Count", del_ack_count);
+    // cmd.AddValue ("cleanup_time", "Clean up time before simulation ends", cleanup_time);
+    // cmd.AddValue ("initial_cwnd", "Initial cwnd Size", initial_cwnd);
+    // cmd.AddValue ("bytes_to_send", "Bytes to send using BulkSend", bytes_to_send);
+    // //cmd.AddValue ("tcp_type_id", "Flavour of TCP to use", tcp_type_id);
+    // cmd.AddValue ("queue_disc", "queue Discipline to use", queue_disc);
+    // cmd.AddValue ("queue_size", "Queue size at router", queue_size);
+    // cmd.AddValue ("RTT", "Round Trip Time for a packet", RTT);
+    // cmd.AddValue ("bottleneck_bandwidth", "Bandwidth of the bottleneck link", bottleneck_bandwidth);
+    // cmd.AddValue ("bottleneck_delay", "Delay of Bandwidth Link", bottleneck_delay);
+    // cmd.AddValue ("access_bandwidth", "Bandwidth of the branches", access_bandwidth);
+    // cmd.AddValue ("root_dir", "Root Directory of Project", root_dir);
+    // cmd.AddValue ("qsize_trace_filename", "FileName to store qsize trace", qsize_trace_filename);
+    // cmd.AddValue ("dropped_trace_filename", "FileName to store dropped packets", dropped_trace_filename);
+    // cmd.AddValue ("bottleneck_tx_filename", "FileName to store bottlneck tra", bottleneck_tx_filename);
+    // cmd.AddValue ("stop_time", "Simulation stop time", stop_time);
+    // cmd.AddValue ("start_time", "Simulation Start Time", start_time);
+    // cmd.AddValue ("start_tracing_time", "Time to wait before tracing", start_tracing_time);
+    // cmd.AddValue ("enable_bot_trace", "Enable Tracing for whole simulation", enable_bot_trace);
     cmd.Parse (argc, argv);
     
     Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue (tcp_type_id));
@@ -191,33 +186,33 @@ main(int argc, char *argv[])
     Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (del_ack_count));
     Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (segmentSize));
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p")));
-    Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
+   // Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
     NS_LOG_UNCOND("Pass");
     // Print all values to std::cout
-    std::cout << "Configuration Values:" << std::endl;
-    std::cout << "n_nodes: " << n_nodes << std::endl;
-    std::cout << "del_ack_count: " << del_ack_count << std::endl;
-    std::cout << "cleanup_time: " << cleanup_time << " seconds" << std::endl;
-    std::cout << "initial_cwnd: " << initial_cwnd << std::endl;
-    std::cout << "bytes_to_send: " << bytes_to_send << " bytes" << std::endl;
-    std::cout << "tcp_type_id: " << tcp_type_id << std::endl;
-    std::cout << "queue_disc: " << queue_disc << std::endl;
-    std::cout << "queue_size: " << queue_size << std::endl;
-    std::cout << "RTT: " << RTT << std::endl;
-    std::cout << "bottleneck_bandwidth: " << bottleneck_bandwidth << std::endl;
-    std::cout << "bottleneck_delay: " << bottleneck_delay << std::endl;
-    std::cout << "access_bandwidth: " << access_bandwidth << std::endl;
-    std::cout << "root_dir: " << root_dir << std::endl;
-    std::cout << "qsize_trace_filename: " << qsize_trace_filename << std::endl;
-    std::cout << "dropped_trace_filename: " << dropped_trace_filename << std::endl;
-    std::cout << "bottleneck_tx_filename: " << bottleneck_tx_filename << std::endl;
-    std::cout << "stop_time: " << stop_time << " seconds" << std::endl;
-    std::cout << "start_time: " << start_time << " seconds" << std::endl;
-    std::cout << "start_tracing_time: " << start_tracing_time << " seconds" << std::endl;
-    std::cout << "enable_bot_trace: " << (enable_bot_trace ? "true" : "false") << std::endl;
-    return 0;
+    // std::cout << "Configuration Values:" << std::endl;
+    // std::cout << "n_nodes: " << n_nodes << std::endl;
+    // std::cout << "del_ack_count: " << del_ack_count << std::endl;
+    // std::cout << "cleanup_time: " << cleanup_time << " seconds" << std::endl;
+    // std::cout << "initial_cwnd: " << initial_cwnd << std::endl;
+    // std::cout << "bytes_to_send: " << bytes_to_send << " bytes" << std::endl;
+    // std::cout << "tcp_type_id: " << tcp_type_id << std::endl;
+    // std::cout << "queue_disc: " << queue_disc << std::endl;
+    // std::cout << "queue_size: " << queue_size << std::endl;
+    // std::cout << "RTT: " << RTT << std::endl;
+    // std::cout << "bottleneck_bandwidth: " << bottleneck_bandwidth << std::endl;
+    // std::cout << "bottleneck_delay: " << bottleneck_delay << std::endl;
+    // std::cout << "access_bandwidth: " << access_bandwidth << std::endl;
+    // std::cout << "root_dir: " << root_dir << std::endl;
+    // std::cout << "qsize_trace_filename: " << qsize_trace_filename << std::endl;
+    // std::cout << "dropped_trace_filename: " << dropped_trace_filename << std::endl;
+    // std::cout << "bottleneck_tx_filename: " << bottleneck_tx_filename << std::endl;
+    // std::cout << "stop_time: " << stop_time << " seconds" << std::endl;
+    // std::cout << "start_time: " << start_time << " seconds" << std::endl;
+    // std::cout << "start_tracing_time: " << start_tracing_time << " seconds" << std::endl;
+    // std::cout << "enable_bot_trace: " << (enable_bot_trace ? "true" : "false") << std::endl;
+    // return 0;
 
     // two for router and n_nodes on left and right of bottleneck
     NodeContainer nodes;
@@ -244,6 +239,7 @@ main(int argc, char *argv[])
     PointToPointHelper p2p_router;
     p2p_router.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
     p2p_router.SetChannelAttribute ("Delay", StringValue ("1ms"));
+    // p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
     p2p_router.DisableFlowControl();
 
     
@@ -309,16 +305,6 @@ main(int argc, char *argv[])
         sinkApp[i].Stop(Seconds(stop_time));
     }
 
-    // Installing traffic control
-    // TrafficControlHelper tch;
-    // tch.SetRootQueueDisc(queue_disc, "MaxSize", queue_size);
-    // QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
-    
-    // change queue size every 5 seconds
-    // for(auto t = 5; t < stop_time; t+=5){
-    //     Simulator::(Seconds(t), &changeQueueSize, queueDiscs.Get(0), 20+t);
-    // }
-
     // Installing BulkSend on each node on left
     Ptr<Socket> ns3TcpSocket[n_nodes];
     ApplicationContainer sourceApps[n_nodes];
@@ -375,7 +361,8 @@ main(int argc, char *argv[])
     Simulator::Schedule( Seconds(stime), &StartTracingQueueSize);
     Simulator::Schedule( Seconds(stime), &StartTracingTransmitedPacket);
     Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, n_nodes);
-
+    auto nq = 600;
+    int tt = 1;
     // start tracing Queue Size and Dropped Files
     Simulator::Schedule( Seconds(stime), &TraceDroppedPacket, dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files periodically ( 1 sec. )
@@ -385,6 +372,10 @@ main(int argc, char *argv[])
         Simulator::Schedule( Seconds(time), &TraceQueueSize);
         Simulator::Schedule( Seconds(time), &TraceBottleneckTx);
         Simulator::Schedule( Seconds(time), &TraceDroppedPkts);
+        p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(nq)+'p')));
+        if(tt > 1000) nq = 10;
+        // else nq = 1000;
+        tt++;
     }
     
     if ( enable_bot_trace == 1 ){

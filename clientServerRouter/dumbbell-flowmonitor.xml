@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<FlowMonitor>
+  <FlowStats>
+    <Flow flowId="1" timeFirstTxPacket="+0ns" timeFirstRxPacket="+3.25043e+08ns" timeLastTxPacket="+1.00325e+11ns" timeLastRxPacket="+1.00827e+11ns" delaySum="+5.6359e+12ns" jitterSum="+6.43756e+10ns" lastDelay="+5.02228e+08ns" txBytes="11048976" rxBytes="11024488" txPackets="8199" rxPackets="8173" lostPackets="26" timesForwarded="16346">
+      <packetsDropped reasonCode="0" number="0" />
+      <packetsDropped reasonCode="1" number="0" />
+      <packetsDropped reasonCode="2" number="0" />
+      <packetsDropped reasonCode="3" number="26" />
+      <bytesDropped reasonCode="0" bytes="0" />
+      <bytesDropped reasonCode="1" bytes="0" />
+      <bytesDropped reasonCode="2" bytes="0" />
+      <bytesDropped reasonCode="3" bytes="24488" />
+    </Flow>
+    <Flow flowId="2" timeFirstTxPacket="+2.88661e+08ns" timeFirstRxPacket="+5.30668e+08ns" timeLastTxPacket="+1.01032e+11ns" timeLastRxPacket="+1.01274e+11ns" delaySum="+6.25761e+12ns" jitterSum="+7.49898e+10ns" lastDelay="+2.41815e+08ns" txBytes="13550580" rxBytes="13528912" txPackets="10325" rxPackets="10298" lostPackets="27" timesForwarded="20596">
+      <packetsDropped reasonCode="0" number="0" />
+      <packetsDropped reasonCode="1" number="0" />
+      <packetsDropped reasonCode="2" number="0" />
+      <packetsDropped reasonCode="3" number="27" />
+      <bytesDropped reasonCode="0" bytes="0" />
+      <bytesDropped reasonCode="1" bytes="0" />
+      <bytesDropped reasonCode="2" bytes="0" />
+      <bytesDropped reasonCode="3" bytes="21668" />
+    </Flow>
+    <Flow flowId="3" timeFirstTxPacket="+3.25043e+08ns" timeFirstRxPacket="+6.50085e+08ns" timeLastTxPacket="+1.0195e+11ns" timeLastRxPacket="+1.01141e+11ns" delaySum="+1.40311e+12ns" jitterSum="+1.07786e+07ns" lastDelay="+3.24995e+08ns" txBytes="233220" rxBytes="233168" txPackets="4318" rxPackets="4317" lostPackets="0" timesForwarded="8634">
+    </Flow>
+    <Flow flowId="4" timeFirstTxPacket="+5.30668e+08ns" timeFirstRxPacket="+7.72675e+08ns" timeLastTxPacket="+1.0079e+11ns" timeLastRxPacket="+1.01032e+11ns" delaySum="+1.32026e+12ns" jitterSum="+2.56908e+07ns" lastDelay="+2.41959e+08ns" txBytes="293500" rxBytes="293500" txPackets="5456" rxPackets="5456" lostPackets="0" timesForwarded="10912">
+    </Flow>
+  </FlowStats>
+  <Ipv4FlowClassifier>
+    <Flow flowId="1" sourceAddress="10.1.0.1" destinationAddress="10.1.2.1" protocol="6" sourcePort="49153" destinationPort="50000">
+      <Dscp value="0x0" packets="8199" />
+    </Flow>
+    <Flow flowId="2" sourceAddress="10.1.1.1" destinationAddress="10.1.3.1" protocol="6" sourcePort="49153" destinationPort="50000">
+      <Dscp value="0x0" packets="10325" />
+    </Flow>
+    <Flow flowId="3" sourceAddress="10.1.2.1" destinationAddress="10.1.0.1" protocol="6" sourcePort="50000" destinationPort="49153">
+      <Dscp value="0x0" packets="4318" />
+    </Flow>
+    <Flow flowId="4" sourceAddress="10.1.3.1" destinationAddress="10.1.1.1" protocol="6" sourcePort="50000" destinationPort="49153">
+      <Dscp value="0x0" packets="5456" />
+    </Flow>
+  </Ipv4FlowClassifier>
+  <Ipv6FlowClassifier>
+  </Ipv6FlowClassifier>
+  <FlowProbes>
+    <FlowProbe index="0">
+      <FlowStats  flowId="1" packets="8199" bytes="11048976" delayFromFirstProbeSum="+1.43818e+12ns" >
+        <packetsDropped reasonCode="0" number="0" />
+        <packetsDropped reasonCode="1" number="0" />
+        <packetsDropped reasonCode="2" number="0" />
+        <packetsDropped reasonCode="3" number="26" />
+        <bytesDropped reasonCode="0" bytes="0" />
+        <bytesDropped reasonCode="1" bytes="0" />
+        <bytesDropped reasonCode="2" bytes="0" />
+        <bytesDropped reasonCode="3" bytes="24488" />
+      </FlowStats>
+      <FlowStats  flowId="2" packets="10325" bytes="13550580" delayFromFirstProbeSum="+1.39502e+12ns" >
+        <packetsDropped reasonCode="0" number="0" />
+        <packetsDropped reasonCode="1" number="0" />
+        <packetsDropped reasonCode="2" number="0" />
+        <packetsDropped reasonCode="3" number="27" />
+        <bytesDropped reasonCode="0" bytes="0" />
+        <bytesDropped reasonCode="1" bytes="0" />
+        <bytesDropped reasonCode="2" bytes="0" />
+        <bytesDropped reasonCode="3" bytes="21668" />
+      </FlowStats>
+      <FlowStats  flowId="3" packets="4317" bytes="233168" delayFromFirstProbeSum="+7.042e+11ns" >
+      </FlowStats>
+      <FlowStats  flowId="4" packets="5456" bytes="293500" delayFromFirstProbeSum="+6.63472e+11ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="1">
+    </FlowProbe>
+    <FlowProbe index="2">
+      <FlowStats  flowId="1" packets="8173" bytes="11024488" delayFromFirstProbeSum="+4.26774e+12ns" >
+      </FlowStats>
+      <FlowStats  flowId="2" packets="10298" bytes="13528912" delayFromFirstProbeSum="+4.96125e+12ns" >
+      </FlowStats>
+      <FlowStats  flowId="3" packets="4317" bytes="233168" delayFromFirstProbeSum="+6.98911e+11ns" >
+      </FlowStats>
+      <FlowStats  flowId="4" packets="5456" bytes="293500" delayFromFirstProbeSum="+6.56786e+11ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="3">
+    </FlowProbe>
+    <FlowProbe index="4">
+      <FlowStats  flowId="1" packets="8199" bytes="11048976" delayFromFirstProbeSum="+0ns" >
+      </FlowStats>
+      <FlowStats  flowId="3" packets="4317" bytes="233168" delayFromFirstProbeSum="+1.40311e+12ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="5">
+    </FlowProbe>
+    <FlowProbe index="6">
+      <FlowStats  flowId="2" packets="10325" bytes="13550580" delayFromFirstProbeSum="+0ns" >
+      </FlowStats>
+      <FlowStats  flowId="4" packets="5456" bytes="293500" delayFromFirstProbeSum="+1.32026e+12ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="7">
+    </FlowProbe>
+    <FlowProbe index="8">
+      <FlowStats  flowId="1" packets="8173" bytes="11024488" delayFromFirstProbeSum="+5.6359e+12ns" >
+      </FlowStats>
+      <FlowStats  flowId="3" packets="4318" bytes="233220" delayFromFirstProbeSum="+0ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="9">
+    </FlowProbe>
+    <FlowProbe index="10">
+      <FlowStats  flowId="2" packets="10298" bytes="13528912" delayFromFirstProbeSum="+6.25761e+12ns" >
+      </FlowStats>
+      <FlowStats  flowId="4" packets="5456" bytes="293500" delayFromFirstProbeSum="+0ns" >
+      </FlowStats>
+    </FlowProbe>
+    <FlowProbe index="11">
+    </FlowProbe>
+  </FlowProbes>
+</FlowMonitor>
