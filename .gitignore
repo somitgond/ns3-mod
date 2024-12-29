@@ -1,10 +1,12 @@
 # ignore all dot files
-.*
+#.*
 
+.lock-ns3_linux_build
 # ignore results
 tcp-dumbbell*
 results-*
 result-*
+cmake-cache/
 
 # ignore build directory
 build/
