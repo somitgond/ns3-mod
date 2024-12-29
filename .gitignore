@@ -4,6 +4,7 @@
 # ignore results
 tcp-dumbbell*
 results-*
+result-*
 
 # ignore build directory
 build/

@@ -29,11 +29,12 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 
-std::string dir = "clientServerRouter/";
+std::string dir = "result-clientServerRouter/";
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
-
+uint32_t threshold = 10;
+uint32_t increment = 100;
 
 
 std::vector<uint32_t> cwnd;
@@ -47,6 +48,24 @@ Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
 
 uint64_t droppedPackets;
 Ptr<OutputStreamWrapper> dropped_stream;
+
+void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
+    QueueSize currentSize = queueDisc->GetMaxSize();
+    NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
+    NS_LOG_UNCOND("Queue CurrentSize " << queueDisc->GetCurrentSize().GetValue());
+    // if (queueDisc->GetCurrentSize().GetValue() > threshold) {
+        QueueSize newSize = QueueSize(currentSize.GetUnit(), currentSize.GetValue() + increment);
+        queueDisc->SetMaxSize(newSize);
+        NS_LOG_UNCOND("Queue size adjusted to " << newSize);
+    // }
+}
+
+void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
+    AdjustQueueSize(queueDisc);
+    // NS_LOG_UNCOND("Queue size adjusted");
+    Simulator::Schedule(interval, &PeriodicQueueAdjustment, queueDisc, interval);
+}
+
 
 static void
 plotQsizeChange (uint32_t oldQSize, uint32_t newQSize){
@@ -134,14 +153,14 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    uint32_t n_nodes = 2; // number of nodes on client and server
+    uint32_t n_nodes = 3; // number of nodes on client and server
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queue_size = "100p";
+    std::string queue_size = "10p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -238,7 +257,7 @@ main(int argc, char *argv[])
     PointToPointHelper p2p_router;
     p2p_router.SetDeviceAttribute ("DataRate", StringValue (bottleneck_bandwidth));
     p2p_router.SetChannelAttribute ("Delay", StringValue (bottleneck_delay));
-    p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
+    // p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
     p2p_router.DisableFlowControl();
 
     
@@ -285,13 +304,24 @@ main(int argc, char *argv[])
             }
         }
     }
-
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "AdaptationInterval", StringValue("1s"),
-                        "AdaptationThreshold", UintegerValue(20));
+    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
+    QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
+    // two devices
+    // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
+    Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
 
-    // tch.SetRootQueueDisc("ns3::Adap");
-    QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(1));
+    // Schedule periodic queue size adjustments
+    Time adjustmentInterval = Seconds(10.0);
+    // Simulator::Schedule(adjustmentInterval, &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
+    Simulator::Schedule( Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
+
+    // TrafficControlHelper tch;
+    // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "AdaptationInterval", StringValue("1s"),
+    //                     "AdaptationThreshold", UintegerValue(20));
+
+    // // tch.SetRootQueueDisc("ns3::Adap");
+    // QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(1));
 
 
     // Giving IP Address to each node
