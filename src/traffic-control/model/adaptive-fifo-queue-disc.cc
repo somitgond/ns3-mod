@@ -42,7 +42,8 @@ AdaptiveFifoQueueDisc::~AdaptiveFifoQueueDisc() {}
 void AdaptiveFifoQueueDisc::DoInitialize() {
     NS_LOG_FUNCTION(this);
     QueueDisc::DoInitialize();
-    m_adaptationEvent = Simulator::Schedule(m_adaptationInterval, &AdaptiveFifoQueueDisc::AdjustQueueSize, this);
+    AdjustQueueSize();
+    // m_adaptationEvent = Simulator::Schedule(m_adaptationInterval, &AdaptiveFifoQueueDisc::AdjustQueueSize, this);
 }
 
 void AdaptiveFifoQueueDisc::DoDispose() {
@@ -139,11 +140,15 @@ void AdaptiveFifoQueueDisc::AdjustQueueSize() {
     NS_LOG_FUNCTION(this);
     // Current number of packets in the queue  
     uint32_t currentQueueSize = GetNPackets(); 
+    uint32_t queueSize = GetInternalQueue(0) ->GetCurrentSize().GetValue();
 
     // Current Max Size of Queue
     QueueSize currentMaxSize = GetMaxSize();
-
     uint32_t currentMaxSizeValue = currentMaxSize.GetValue();
+    m_adaptationThreshold = currentMaxSizeValue/2;
+
+    // output for troubleshooting
+    NS_LOG_UNCOND("MaxSize: "<<currentMaxSizeValue<<" CurrentSize: "<<currentQueueSize << " Q: "<<queueSize);
 
     if (currentQueueSize > m_adaptationThreshold) {
         // Increase queue size dynamically

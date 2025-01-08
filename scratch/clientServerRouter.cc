@@ -56,6 +56,7 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
     // if (queueDisc->GetCurrentSize().GetValue() > threshold) {
         QueueSize newSize = QueueSize(currentSize.GetUnit(), currentSize.GetValue() + increment);
         queueDisc->SetMaxSize(newSize);
+        threshold = (currentSize.GetValue() + increment)/2;
         NS_LOG_UNCOND("Queue size adjusted to " << newSize);
     // }
 }
@@ -111,9 +112,19 @@ TraceBottleneckTx(){
     *bottleneckTransimittedStream->GetStream() << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimitted << std::endl;
 }
 
+void
+BytesInQueueTrace (Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal)
+{
+  *stream->GetStream () << Simulator::Now ().GetSeconds () << " " << newVal/segmentSize << std::endl;
+}
+
 static void
 StartTracingQueueSize(){
+    // trace Queue size in pointTopointNetDevice
     Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/PacketsInQueue", MakeCallback(&plotQsizeChange));
+    
+    // Trace Queue size in trafficcontrol Layer
+    // Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/PacketsInQueue", MakeCallback(&plotQsizeChange));
 }
 
 static void
@@ -160,7 +171,7 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queue_size = "10p";
+    std::string queueSize = "10p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -169,7 +180,7 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
-    float stop_time = 100;
+    float stop_time = 300;
     float start_time = 0;
     float start_tracing_time = 10;
     bool enable_bot_trace = true;
@@ -239,7 +250,10 @@ main(int argc, char *argv[])
     NodeContainer leftNodes [n_nodes];
     // Destination nodes
     NodeContainer rightNodes [n_nodes];
+
+    // router
     NodeContainer r1r2 = NodeContainer(nodes.Get(0), nodes.Get(1));
+
     for( uint32_t i = 0; i< n_nodes ; i++){
         leftNodes[i] = NodeContainer(nodes.Get(i+2), nodes.Get(0));
         rightNodes[i] = NodeContainer(nodes.Get(2+n_nodes+i), nodes.Get(1));
@@ -258,7 +272,7 @@ main(int argc, char *argv[])
     p2p_router.SetDeviceAttribute ("DataRate", StringValue (bottleneck_bandwidth));
     p2p_router.SetChannelAttribute ("Delay", StringValue (bottleneck_delay));
     // p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
-    p2p_router.DisableFlowControl();
+    // p2p_router.DisableFlowControl();
 
     
     PointToPointHelper p2p_s[n_nodes], p2p_d[n_nodes];
@@ -305,24 +319,25 @@ main(int argc, char *argv[])
         }
     }
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
+    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (queueSize)));
+    // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (queue_size)),
+                            // "AdaptationInterval", StringValue("1s"),
+    //                     "AdaptationThreshold", UintegerValue(20));
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
-    // two devices
-    // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
+    // // two devices
+    // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
+    // // tracing queue Size change
+    // AsciiTraceHelper ascii;
+    // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get (0))->GetQueue ();
+    // Ptr<OutputStreamWrapper> streamBytesInQueue = ascii.CreateFileStream ( "result-cs-bytesInQueue.txt");
+    // queue->TraceConnectWithoutContext ("BytesInQueue",MakeBoundCallback (&BytesInQueueTrace, streamBytesInQueue));
+
 
     // Schedule periodic queue size adjustments
     Time adjustmentInterval = Seconds(10.0);
     // Simulator::Schedule(adjustmentInterval, &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
     Simulator::Schedule( Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
-
-    // TrafficControlHelper tch;
-    // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "AdaptationInterval", StringValue("1s"),
-    //                     "AdaptationThreshold", UintegerValue(20));
-
-    // // tch.SetRootQueueDisc("ns3::Adap");
-    // QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(1));
-
 
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
