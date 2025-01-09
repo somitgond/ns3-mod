@@ -42,6 +42,7 @@ std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 
 uint64_t queue_size;
 Ptr<OutputStreamWrapper> qSize_stream;
+Ptr<OutputStreamWrapper> tc_qSize_stream;
 
 uint64_t bottleneckTransimitted;
 Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
@@ -67,6 +68,10 @@ void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
     Simulator::Schedule(interval, &PeriodicQueueAdjustment, queueDisc, interval);
 }
 
+void TraceQueueSizeTc(Ptr<QueueDisc> queueDisc) {
+    // Trace Queue Size in Traffic Control Layer
+    *tc_qSize_stream->GetStream () << Simulator::Now ().GetSeconds () << " " << queueDisc->GetCurrentSize().GetValue() << std::endl;
+}
 
 static void
 plotQsizeChange (uint32_t oldQSize, uint32_t newQSize){
@@ -180,6 +185,7 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
+    std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
     float stop_time = 300;
     float start_time = 0;
     float start_tracing_time = 10;
@@ -413,13 +419,18 @@ main(int argc, char *argv[])
     retVal = system(dirToSave.c_str ());
     NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
- // Configuring file stream to write the Qsize
+    // Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
     qSize_stream = ascii_qsize.CreateFileStream(dir+qsize_trace_filename+".txt");
+
+    // trace traffic control qsize
+    AsciiTraceHelper ascii_tc_qsize;
+    tc_qSize_stream = ascii_tc_qsize.CreateFileStream(dir+tc_qsize_trace_filename+".txt");
 
     // Configuring file stream to write the no of packets transmitted by the bottleneck
     AsciiTraceHelper ascii_qsize_tx;
     bottleneckTransimittedStream = ascii_qsize_tx.CreateFileStream(dir+bottleneck_tx_filename+".txt");
+
     AsciiTraceHelper ascii_dropped;
     dropped_stream = ascii_dropped.CreateFileStream (dir+dropped_trace_filename + ".txt");
     // start tracing the congestion window size and qSize
@@ -436,6 +447,7 @@ main(int argc, char *argv[])
     for (auto time = stime+start_tracing_time; time < stop_time; time+=0.1)
     {   
         // Simulator::Schedule( Seconds(time), &writeCwndToFile, n_nodes);
+        Simulator::Schedule( Seconds(time), &TraceQueueSizeTc, queueDisc);
         Simulator::Schedule( Seconds(time), &TraceQueueSize);
         Simulator::Schedule( Seconds(time), &TraceBottleneckTx);
         Simulator::Schedule( Seconds(time), &TraceDroppedPkts);
