@@ -169,7 +169,7 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    uint32_t n_nodes = 3; // number of nodes on client and server
+    uint32_t n_nodes = 60; // number of nodes on client and server
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
