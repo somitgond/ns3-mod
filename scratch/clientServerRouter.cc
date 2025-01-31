@@ -1,5 +1,7 @@
 /*
 Single bottleneck dumbbell network
+Active Queue Management using variable maxSize
+
 */
 #include <sys/stat.h>
 #include <iostream>
@@ -50,6 +52,9 @@ Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
 uint64_t droppedPackets;
 Ptr<OutputStreamWrapper> dropped_stream;
 
+// queue disc in router 1
+Ptr<QueueDisc> queueDisc_router;
+
 void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
     QueueSize currentSize = queueDisc->GetMaxSize();
     NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
@@ -60,6 +65,13 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
         threshold = (currentSize.GetValue() + increment)/2;
         NS_LOG_UNCOND("Queue size adjusted to " << newSize);
     // }
+}
+
+// set new size 
+void SetQueueSie(uint32_t qth) {
+  QueueSize newSize = QeueuSize(qth);
+  queueDisc_router->SetMaxSize(newSize);
+  NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
 
 void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
@@ -169,7 +181,7 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    uint32_t n_nodes = 60; // number of nodes on client and server
+    uint32_t n_nodes = 3; // number of nodes on client and server
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
@@ -277,7 +289,7 @@ main(int argc, char *argv[])
     PointToPointHelper p2p_router;
     p2p_router.SetDeviceAttribute ("DataRate", StringValue (bottleneck_bandwidth));
     p2p_router.SetChannelAttribute ("Delay", StringValue (bottleneck_delay));
-    // p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queue_size)));
+    p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queueSize)));
     // p2p_router.DisableFlowControl();
 
     
@@ -333,6 +345,7 @@ main(int argc, char *argv[])
     // // two devices
     // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
+    Ptr<QueueDisc> queueDisc_router = queueDiscs.Get(0);
     // // tracing queue Size change
     // AsciiTraceHelper ascii;
     // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get (0))->GetQueue ();
@@ -341,9 +354,9 @@ main(int argc, char *argv[])
 
 
     // Schedule periodic queue size adjustments
-    Time adjustmentInterval = Seconds(10.0);
+    //    Time adjustmentInterval = Seconds(10.0);
     // Simulator::Schedule(adjustmentInterval, &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
-    Simulator::Schedule( Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
+    //    Simulator::Schedule( Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc, adjustmentInterval);
 
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
