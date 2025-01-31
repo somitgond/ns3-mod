@@ -68,7 +68,7 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
 }
 
 // set new size 
-void SetQueueSie(uint32_t qth) {
+void SetQueueSize(uint32_t qth) {
   QueueSize newSize = QeueuSize(qth);
   queueDisc_router->SetMaxSize(newSize);
   NS_LOG_UNCOND("Queue size adjusted to " << newSize);
