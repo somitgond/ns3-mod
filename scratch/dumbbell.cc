@@ -151,7 +151,7 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
-    float stop_time = 300;
+    float stop_time = 100;
     float start_time = 0;
     float start_tracing_time = 10;
     bool enable_bot_trace = true;
