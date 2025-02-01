@@ -226,13 +226,12 @@ static void resetValues(){
 
 
 // Trace congestion window
-static void 
-CwndTracer (uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
+static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     // NS_LOG_UNCOND(Simulator::Now ().GetSeconds () << "\t"<<oldval<<" " << newval);
 
     cwnd[nodeNumber] = newval/segmentSize;
     /// assuming initial old values are all 0..
-    double diff = (newval - oldval)/segmentSize
+    double diff = (newval - oldval)/segmentSize;
     sumWindows += diff;
     if(hasSynchrony && newval < oldval){
         getDipOfHost(nodeNumber, diff, sumWindows/nNodes, oldval);
@@ -241,8 +240,7 @@ CwndTracer (uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
 }
 
 // Write to congestion window streams
-static void 
-writeCwndToFile(uint32_t n_nodes){
+static void writeCwndToFile(uint32_t n_nodes){
     for(uint32_t i = 0; i < n_nodes; i++){
         Config::ConnectWithoutContext("/NodeList/" + std::to_string(i+2) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeBoundCallback(&CwndTracer, i));
     }
