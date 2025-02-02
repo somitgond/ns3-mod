@@ -55,6 +55,32 @@ Ptr<OutputStreamWrapper> dropped_stream;
 // queue disc in router 1
 Ptr<QueueDisc> queueDisc_router = CreateObject<FqCoDelQueueDisc>();
 
+
+//////////////// get qth ///////////////
+
+int giveQth(double w_av, double beta){
+    double pi = 3.141593, c = 200, tao = 0.5;
+    double val = log(pi/2);
+
+    // std::cout<<val<<std::endl;
+
+    int qth = 0;
+    double diff = 100000;
+    for(int i = 1; i<2048; i++){
+        double estimate = log(i) + i*(log(w_av/(c*tao))) + log(w_av*beta);
+        // std::cout<<estimate<<" "<<fabs(val-estimate)<<std::endl;
+
+        if(fabs(val-estimate) < diff){
+            diff = fabs(val-estimate);
+            qth = i;
+        }
+    }
+
+    return qth;
+}
+
+//////////////////////////////////////////////
+
 void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
     QueueSize currentSize = queueDisc->GetMaxSize();
     NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
@@ -151,19 +177,77 @@ StartTracingTransmitedPacket(){
     Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeCallback(&TxPacket));
 }
 
+
+//////////// CALCULATNG BETA /////////////////
+
+std::vector<bool> gotDip(nNodes+1, false);
+
+double sumWindows = 0.0;
+double sum_wti2 = 0.0;
+double sum_wti = 0.0;
+double sum_wiwti = 0.0;
+double sum_biwiwti = 0.0;
+
+int cntDips = 0;
+bool gotAll = false;
+
+bool hasSynchrony = true;
+
+static void getDipOfHost(int node, double diff, double wti, double wi){
+    /// instead of taking the dip once...
+    // if(gotDip[node]) return;
+    // gotDip[node] = true; cntDips++;
+    sum_wti2 += wti*wti;
+    sum_wti += wti;
+    sum_wiwti += wi*wti;
+    sum_biwiwti += diff*wti;
+    
+    /// taking the latest dip if ith node...
+    if(!gotDip[node])gotDip[node] = true; cntDips++;
+    if(cntDips == nNodes) gotAll = true;
+}
+
+///// getBeta returns the beta_optimal at anytime.
+double getBeta(){
+    if(!sum_wti) return -1;
+    return (sum_wti2 - sum_wiwti + sum_biwiwti)/sum_wti;
+}
+
+static void resetValues(){
+    gotDip = std::vector<bool>(nNodes, false);
+    for(int i = 0; i<nNodes; i++){
+        gotDip[i] = false;
+    }
+    sum_wti2 = 0.0;
+    sum_wti = 0.0;
+    sum_wiwti = 0.0;
+    sum_biwiwti = 0.0;
+    cntDips = 0;
+    gotAll = flase;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+
 // Trace congestion window
-static void 
-CwndTracer (Ptr<OutputStreamWrapper> stream, uint32_t oldval, uint32_t newval){
+static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     // NS_LOG_UNCOND(Simulator::Now ().GetSeconds () << "\t"<<oldval<<" " << newval);
 
-    *stream->GetStream () << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
+    cwnd[nodeNumber] = newval/segmentSize;
+    /// assuming initial old values are all 0..
+    double diff = (newval - oldval)/segmentSize;
+    sumWindows += diff;
+    if(hasSynchrony && newval < oldval){
+        getDipOfHost(nodeNumber, diff, sumWindows/nNodes, oldval);
+    }
+    *cwnd_streams[i]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
 // Write to congestion window streams
-static void 
-writeCwndToFile(uint32_t n_nodes){
+static void writeCwndToFile(uint32_t n_nodes){
     for(uint32_t i = 0; i < n_nodes; i++){
-        Config::ConnectWithoutContext("/NodeList/" + std::to_string(i+2) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeBoundCallback(&CwndTracer, cwnd_streams[i]));
+        Config::ConnectWithoutContext("/NodeList/" + std::to_string(i+2) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeBoundCallback(&CwndTracer, i));
     }
 }
 
@@ -262,6 +346,10 @@ main(int argc, char *argv[])
     // std::cout << "enable_bot_trace: " << (enable_bot_trace ? "true" : "false") << std::endl;
     // return 0;
     
+
+
+    // setting the cwnd array
+    cwnd = std::vector<uint32_t>(n_nodes+1, 0);
 
     // two for router and n_nodes on left and right of bottleneck
     NodeContainer nodes;
