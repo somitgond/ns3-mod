@@ -1,0 +1,19 @@
+
+* Notes regarding custom AQM
+
+1. when queue size at net device is increased (1000), while only
+   around 230~ packets are in queue at a time. queue size at traffic
+   control is 0.
+2. if situation is reversed in above qsize at tc is 1000 and qsize at
+   net device is 10 and only 230~ packets are in queue at a time. Then
+   tc-qize is around 220~ and net-device-qsize is full the whole time
+   i.e 10.
+
+   From above observation I can say that there are two queue size one
+   at net device layer and other one at traffic control layer.
+   +---------------+
+   |traffic control|
+   +---------------+
+   |Net device     |
+   +---------------+
+
