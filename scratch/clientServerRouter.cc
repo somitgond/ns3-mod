@@ -37,6 +37,8 @@ Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
 uint32_t threshold = 10;
 uint32_t increment = 100;
+uint32_t nNodes = 0;
+
 
 
 std::vector<uint32_t> cwnd;
@@ -223,7 +225,7 @@ static void resetValues(){
     sum_wiwti = 0.0;
     sum_biwiwti = 0.0;
     cntDips = 0;
-    gotAll = flase;
+    gotAll = false;
 }
 
 
@@ -241,7 +243,15 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     if(hasSynchrony && newval < oldval){
         getDipOfHost(nodeNumber, diff, sumWindows/nNodes, oldval);
     }
-    *cwnd_streams[i]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
+    // check if congestion, if yes calculate qth and set qth
+    double beta = getBeta();
+    double w_av = 0;
+    for(int i = 0; i < nNodes; i++)
+      w_av += cwnd[i];
+    w_av = w_av/nNodes;
+    NS_LOG_UNCOND("beta value: "<< beta);
+    NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
+    *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
 // Write to congestion window streams
@@ -267,6 +277,7 @@ int
 main(int argc, char *argv[])
 {
     uint32_t n_nodes = 3; // number of nodes on client and server
+    nNodes = n_nodes;
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
