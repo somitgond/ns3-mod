@@ -212,7 +212,10 @@ static void getDipOfHost(int node, double diff, double wti, double wi){
     std::cout << sum_wti;
     
     /// taking the latest dip if ith node...
-    if(!gotDip[node])gotDip[node] = true; cntDips++;
+    if(!gotDip[node]){
+        gotDip[node] = true;
+        cntDips++;
+    }
     if(cntDips == nNodes) gotAll = true;
 }
 
@@ -248,7 +251,7 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     double diff = ((double)newval - (double)oldval)/(double)segmentSize;
     NS_LOG_UNCOND("diff value: "<< diff);
     sumWindows += diff;
-    if(hasSynchrony && newval < oldval){
+    if(hasSynchrony && (newval < oldval)){
         getDipOfHost(nodeNumber, diff, arrSumWindows[nodeNumber]/nNodes, oldval);
     }
     // check if congestion, if yes calculate qth and set qth
