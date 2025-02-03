@@ -249,16 +249,16 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     NS_LOG_UNCOND("diff value: "<< diff);
     sumWindows += diff;
     if(hasSynchrony && newval < oldval){
-        getDipOfHost(nodeNumber, diff, arrSumWindows[node]/nNodes, oldval);
+        getDipOfHost(nodeNumber, diff, arrSumWindows[nodeNumber]/nNodes, oldval);
     }
     // check if congestion, if yes calculate qth and set qth
     double beta = getBeta();
-    double w_av = arrSumWindows[node]/nNodes;
+    double w_av = arrSumWindows[nodeNumber]/nNodes;
     NS_LOG_UNCOND("w_avg value: "<< w_av);
     if(gotAll) NS_LOG_UNCOND("beta value: "<< beta);
     NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
 
-    arrSumWindows[node] = sumWindows;
+    arrSumWindows[nodeNumber] = sumWindows;
     *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
