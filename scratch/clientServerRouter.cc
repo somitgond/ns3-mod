@@ -39,8 +39,6 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 0;
 
-
-
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 
