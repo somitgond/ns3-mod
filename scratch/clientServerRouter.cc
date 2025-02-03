@@ -244,7 +244,8 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
 
     cwnd[nodeNumber] = newval/segmentSize;
     /// assuming initial old values are all 0..
-    double diff = (newval - oldval)/(double)segmentSize;
+    double diff = ((double)newval - (double)oldval)/(double)segmentSize;
+    NS_LOG_UNCOND("diff value: "<< diff);
     sumWindows += diff;
     if(hasSynchrony && newval < oldval){
         getDipOfHost(nodeNumber, diff, prevSumWindows/nNodes, oldval);
