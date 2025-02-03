@@ -184,7 +184,8 @@ StartTracingTransmitedPacket(){
 
 std::vector<bool> gotDip(nNodes+1, false);
 
-double sumWindows = 0.0, prevSumWindows = 0.0;
+double sumWindows = 0.0;
+std::vector<double> arrSumWindows(nNodes+1, 0.0);
 double sum_wti2 = 0.0;
 std::vector<double> wti2(nNodes+1, 0.0);
 double sum_wti = 0.0;
@@ -208,7 +209,7 @@ static void getDipOfHost(int node, double diff, double wti, double wi){
     sum_wiwti += wi*wti - wiwti[node]; wiwti[node] = wi*wti;
     sum_biwiwti += diff*wti - biwiwti[node]; biwiwti[node] = diff*wti;
 
-    NS_LOG_UNCOND("sum_wti value: "<< sum_wti);
+    std::cout << sum_wti;
     
     /// taking the latest dip if ith node...
     if(!gotDip[node])gotDip[node] = true; cntDips++;
@@ -248,16 +249,16 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     NS_LOG_UNCOND("diff value: "<< diff);
     sumWindows += diff;
     if(hasSynchrony && newval < oldval){
-        getDipOfHost(nodeNumber, diff, prevSumWindows/nNodes, oldval);
+        getDipOfHost(nodeNumber, diff, arrSumWindows[node]/nNodes, oldval);
     }
     // check if congestion, if yes calculate qth and set qth
     double beta = getBeta();
-    double w_av = prevSumWindows/nNodes;
+    double w_av = arrSumWindows[node]/nNodes;
     NS_LOG_UNCOND("w_avg value: "<< w_av);
     if(gotAll) NS_LOG_UNCOND("beta value: "<< beta);
     NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
 
-    prevSumWindows = sumWindows;
+    arrSumWindows[node] = sumWindows;
     *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
