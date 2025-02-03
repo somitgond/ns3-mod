@@ -208,7 +208,7 @@ static void getDipOfHost(int node, double diff, double wti, double wi){
     sum_wiwti += wi*wti - wiwti[node]; wiwti[node] = wi*wti;
     sum_biwiwti += diff*wti - biwiwti[node]; biwiwti[node] = diff*wti;
 
-    NS_LOG_UNCOND("sum_wti value: "<< sum_wti);
+    std::cout << sum_wti;
     
     /// taking the latest dip if ith node...
     if(!gotDip[node])gotDip[node] = true; cntDips++;
