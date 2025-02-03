@@ -55,7 +55,7 @@ uint64_t droppedPackets;
 Ptr<OutputStreamWrapper> dropped_stream;
 
 // queue disc in router 1
-Ptr<QueueDisc> queueDisc_router = CreateObject<FqCoDelQueueDisc>();
+Ptr<QueueDisc> queueDisc_router = CreateObject<FifoQueueDisc>();
 
 
 //////////////// get qth ///////////////
@@ -100,6 +100,8 @@ void SetQueueSize(uint32_t qth) {
   std::string qth_str = std::to_string(qth) + "p";
   QueueSize newSize = QueueSize(qth_str);
   queueDisc_router->SetMaxSize(newSize);
+  QueueSize currentSize = queueDisc_router->GetMaxSize();
+  NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
   NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
 
@@ -249,8 +251,9 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     for(int i = 0; i < nNodes; i++)
       w_av += cwnd[i];
     w_av = w_av/nNodes;
-    NS_LOG_UNCOND("beta value: "<< beta);
-    NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
+    //    NS_LOG_UNCOND("w_avg value: "<< w_av);
+    //    NS_LOG_UNCOND("beta value: "<< beta);
+    //    NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
     *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
@@ -284,7 +287,8 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "0p";
+    std::string queueSize = "1p";
+    std::string tc_queueSize = "1p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -438,7 +442,7 @@ main(int argc, char *argv[])
         }
     }
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize ("1000p")));
+    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "MaxSize", QueueSizeValue (QueueSize (queue_size)),
                             // "AdaptationInterval", StringValue("1s"),
     //                     "AdaptationThreshold", UintegerValue(20));

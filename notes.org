@@ -17,3 +17,9 @@
    |Net device     |
    +---------------+
 
+3. If net device queue is set to 0: tc-qsize is 0, but nd-qsize is ~230
+4. If I not set nd-qsize, then default nd-qsize is setted as 100
+5. when both nd-qsize and tc-qsize is set to 0. tc-qsize remains 0
+   while nd-qsize is ~230
+   Does 0 means infinite buffer size ? Observation points to that
+6. 
