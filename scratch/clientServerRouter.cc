@@ -302,7 +302,7 @@ main(int argc, char *argv[])
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
-    float stop_time = 1000;
+    float stop_time = 300;
     float start_time = 0;
     float start_tracing_time = 10;
     bool enable_bot_trace = true;
