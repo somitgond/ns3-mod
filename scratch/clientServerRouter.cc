@@ -186,11 +186,15 @@ StartTracingTransmitedPacket(){
 
 std::vector<bool> gotDip(nNodes+1, false);
 
-double sumWindows = 0.0;
+double sumWindows = 0.0, prevSumWindows = 0.0;
 double sum_wti2 = 0.0;
+std::vector<double> wti2(nNodes+1, 0.0);
 double sum_wti = 0.0;
+std::vector<double> arrWti(nNodes+1, 0.0);
 double sum_wiwti = 0.0;
+std::vector<double> wiwti(nNodes+1, 0.0);
 double sum_biwiwti = 0.0;
+std::vector<double> biwiwti(nNodes+1, 0.0);
 
 int cntDips = 0;
 bool gotAll = false;
@@ -201,10 +205,10 @@ static void getDipOfHost(int node, double diff, double wti, double wi){
     /// instead of taking the dip once...
     // if(gotDip[node]) return;
     // gotDip[node] = true; cntDips++;
-    sum_wti2 += wti*wti;
-    sum_wti += wti;
-    sum_wiwti += wi*wti;
-    sum_biwiwti += diff*wti;
+    sum_wti2 += wti*wti - wti2[node]; wti2[node] = wti*wti;
+    sum_wti += wti - arrWti[node]; arrWti[node] = wti;
+    sum_wiwti += wi*wti - wiwti[node]; wiwti[node] = wi*wti;
+    sum_biwiwti += diff*wti - biwiwti[node]; biwiwti[node] = diff*wti;
 
     NS_LOG_UNCOND("sum_wti value: "<< sum_wti);
     
@@ -245,14 +249,16 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     double diff = (newval - oldval)/(double)segmentSize;
     sumWindows += diff;
     if(hasSynchrony && newval < oldval){
-        getDipOfHost(nodeNumber, diff, sumWindows/nNodes, oldval);
+        getDipOfHost(nodeNumber, diff, prevSumWindows/nNodes, oldval);
     }
     // check if congestion, if yes calculate qth and set qth
     double beta = getBeta();
-    double w_av = sumWindows/nNodes;
-       NS_LOG_UNCOND("w_avg value: "<< w_av);
-       if(getAll) NS_LOG_UNCOND("beta value: "<< beta);
-       NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
+    double w_av = prevSumWindows/nNodes;
+    NS_LOG_UNCOND("w_avg value: "<< w_av);
+    if(gotAll) NS_LOG_UNCOND("beta value: "<< beta);
+    NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
+
+    prevSumWindows = sumWindows;
     *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
