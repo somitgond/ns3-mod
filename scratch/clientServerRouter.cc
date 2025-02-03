@@ -39,8 +39,6 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 0;
 
-
-
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 
@@ -251,7 +249,7 @@ static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
     double beta = getBeta();
     double w_av = sumWindows/nNodes;
        NS_LOG_UNCOND("w_avg value: "<< w_av);
-       if(getAll) NS_LOG_UNCOND("beta value: "<< beta);
+       if(gotAll) NS_LOG_UNCOND("beta value: "<< beta);
        NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
     *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
