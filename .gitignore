@@ -1,6 +1,10 @@
 # ignore all dot files
 #.*
 
+# ignore emacs temp files
+*~
+\#*#
+
 .lock-ns3_linux_build
 # ignore results
 tcp-dumbbell*
