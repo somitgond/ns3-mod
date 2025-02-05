@@ -347,9 +347,9 @@ main(int argc, char *argv[])
     NS_LOG_UNCOND("Pass");
     // Print all values to std::cout
     // std::cout << "Configuration Values:" << std::endl;
-    std::cout << "n_nodes: " << n_nodes << std::endl;
+    // std::cout << "n_nodes: " << n_nodes << std::endl;
     
-    return 0;
+
     // std::cout << "del_ack_count: " << del_ack_count << std::endl;
     // std::cout << "cleanup_time: " << cleanup_time << " seconds" << std::endl;
     // std::cout << "initial_cwnd: " << initial_cwnd << std::endl;
