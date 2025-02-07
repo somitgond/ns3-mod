@@ -317,7 +317,7 @@ main(int argc, char *argv[])
     bool enable_bot_trace = true;
 
     CommandLine cmd (__FILE__);
-    // cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
+    cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
     // cmd.AddValue ("del_ack_count", "del Ack Count", del_ack_count);
     // cmd.AddValue ("cleanup_time", "Clean up time before simulation ends", cleanup_time);
     // cmd.AddValue ("initial_cwnd", "Initial cwnd Size", initial_cwnd);
@@ -353,6 +353,8 @@ main(int argc, char *argv[])
     // Print all values to std::cout
     // std::cout << "Configuration Values:" << std::endl;
     // std::cout << "n_nodes: " << n_nodes << std::endl;
+    
+
     // std::cout << "del_ack_count: " << del_ack_count << std::endl;
     // std::cout << "cleanup_time: " << cleanup_time << " seconds" << std::endl;
     // std::cout << "initial_cwnd: " << initial_cwnd << std::endl;
@@ -373,10 +375,9 @@ main(int argc, char *argv[])
     // std::cout << "start_tracing_time: " << start_tracing_time << " seconds" << std::endl;
     // std::cout << "enable_bot_trace: " << (enable_bot_trace ? "true" : "false") << std::endl;
     // return 0;
-    
 
 
-    // setting the cwnd array
+    // Setting the cwnd array
     cwnd = std::vector<uint32_t>(n_nodes+1, 0);
 
     // two for router and n_nodes on left and right of bottleneck

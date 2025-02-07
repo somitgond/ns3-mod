@@ -180,6 +180,7 @@ main(int argc, char *argv[])
 
     CommandLine cmd (__FILE__);
     cmd.AddValue ("nNodes", "Number of nodes in right and left", nNodes);
+    cmd.AddValue ("tcp_type_id", "Flavor of TCP to use", tcpTypeId);
     cmd.AddValue ("stopTime", "Simulation stop time", stopTime);
     cmd.Parse (argc, argv);
     
