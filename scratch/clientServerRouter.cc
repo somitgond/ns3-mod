@@ -35,9 +35,10 @@ std::string dir = "result-clientServerRouter/";
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
+double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
-uint32_t nNodes = 0;
+int nNodes;
 
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
@@ -181,37 +182,38 @@ StartTracingTransmitedPacket(){
 
 
 //////////// CALCULATNG BETA /////////////////
-
-std::vector<bool> gotDip(nNodes+1, false);
-
-double sumWindows = 0.0;
-std::vector<double> arrSumWindows(nNodes+1, 0.0);
-double sum_wti2 = 0.0;
-std::vector<double> wti2(nNodes+1, 0.0);
-double sum_wti = 0.0;
-std::vector<double> arrWti(nNodes+1, 0.0);
-double sum_wiwti = 0.0;
-std::vector<double> wiwti(nNodes+1, 0.0);
-double sum_biwiwti = 0.0;
-std::vector<double> biwiwti(nNodes+1, 0.0);
-
-int cntDips = 0;
-bool gotAll = false;
-
 bool hasSynchrony = true;
+std::vector<bool> gotDip;               bool gotAll = false;        int cntDips = 0;
 
-static void getDipOfHost(int node, double diff, double wti, double wi){
-    /// instead of taking the dip once...
-    // if(gotDip[node]) return;
-    // gotDip[node] = true; cntDips++;
-    sum_wti2 += wti*wti - wti2[node]; wti2[node] = wti*wti;
-    sum_wti += wti - arrWti[node]; arrWti[node] = wti;
-    sum_wiwti += wi*wti - wiwti[node]; wiwti[node] = wi*wti;
-    sum_biwiwti += diff*wti - biwiwti[node]; biwiwti[node] = diff*wti;
+std::vector<double> prevWindow;
 
-    std::cout << sum_wti;
-    
-    /// taking the latest dip if ith node...
+std::vector<double> prevSumWindows;     double sumWindows = 0.0;
+
+std::vector<double> wti2;               double sum_wti2 = 0.0;
+
+std::vector<double> arrWti;             double sum_wti = 0.0;
+
+std::vector<double> wiwti;              double sum_wiwti = 0.0;
+
+std::vector<double> biwiwti;            double sum_biwiwti = 0.0;
+
+void initiateArray(){
+    gotDip          = std::vector<bool>(nNodes+1, false);
+    prevWindow      = std::vector<double>(nNodes+1, 0.0);
+    prevSumWindows  = std::vector<double> (nNodes+1, 0.0);
+    wti2            = std::vector<double>(nNodes+1, 0.0);
+    arrWti          = std::vector<double>(nNodes+1, 0.0);
+    wiwti           = std::vector<double>(nNodes+1, 0.0);
+    biwiwti         = std::vector<double>(nNodes+1, 0.0);
+}
+
+
+static void getDipOfHost(int node, double biwi, double wti, double wi){
+    sum_wti2 += (wti*wti - wti2[node]); wti2[node] = wti*wti;
+    sum_wti += (wti - arrWti[node]); arrWti[node] = wti;
+    sum_wiwti += (wi*wti - wiwti[node]); wiwti[node] = wi*wti;
+    sum_biwiwti += (biwi*wti - biwiwti[node]); biwiwti[node] = biwi*wti;
+
     if(!gotDip[node]){
         gotDip[node] = true;
         cntDips++;
@@ -225,44 +227,46 @@ double getBeta(){
     return (sum_wti2 - sum_wiwti + sum_biwiwti)/sum_wti;
 }
 
-static void resetValues(){
-    gotDip = std::vector<bool>(nNodes, false);
-    for(int i = 0; i<nNodes; i++){
-        gotDip[i] = false;
-    }
-    sum_wti2 = 0.0;
-    sum_wti = 0.0;
-    sum_wiwti = 0.0;
-    sum_biwiwti = 0.0;
-    cntDips = 0;
-    gotAll = false;
-}
+// static void resetValues(){
+//     gotDip = std::vector<bool>(nNodes, false);
+//     gotAll = false;
+//     cntDips = 0;
+//     sum_wti2 = 0.0;
+//     sum_wti = 0.0;
+//     sum_wiwti = 0.0;
+//     sum_biwiwti = 0.0;
+
+//     arrSumWindows = std::vector<double>(nNodes+1, 0.0);
+//     wti2 = std::vector<double>(nNodes+1, 0.0);
+//     arrWti = std::vector<double>(nNodes+1, 0.0);
+//     wiwti = std::vector<double>(nNodes+1, 0.0);
+//     biwiwti = std::vector<double>(nNodes+1, 0.0);
+// }
 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
 // Trace congestion window
-static void CwndTracer(uint32_t nodeNumber, uint32_t oldval, uint32_t newval){
-    // NS_LOG_UNCOND(Simulator::Now ().GetSeconds () << "\t"<<oldval<<" " << newval);
+static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
+    double oldVal = oldval, newVal = newval/segSize;
+    double diff = newVal - prevWindow[node];
 
-    cwnd[nodeNumber] = newval/segmentSize;
-    /// assuming initial old values are all 0..
-    double diff = ((double)newval - (double)oldval)/(double)segmentSize;
-    NS_LOG_UNCOND("diff value: "<< diff);
     sumWindows += diff;
     if(hasSynchrony && (newval < oldval)){
-        getDipOfHost(nodeNumber, diff, arrSumWindows[nodeNumber]/nNodes, oldval);
-    }
-    // check if congestion, if yes calculate qth and set qth
-    double beta = getBeta();
-    double w_av = arrSumWindows[nodeNumber]/nNodes;
-    NS_LOG_UNCOND("w_avg value: "<< w_av);
-    if(gotAll) NS_LOG_UNCOND("beta value: "<< beta);
-    NS_LOG_UNCOND("qth value: "<< giveQth(w_av, beta));
+        getDipOfHost(node, -diff, prevSumWindows[node]/nNodes, prevWindow[node]);
 
-    arrSumWindows[nodeNumber] = sumWindows;
-    *cwnd_streams[nodeNumber]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
+        if(gotAll) {
+            double beta = getBeta();
+            NS_LOG_UNCOND("beta value: "<< beta);
+            NS_LOG_UNCOND("qth value: "<< giveQth(sumWindows/nNodes, beta));
+        }
+    }
+
+    prevSumWindows[node] = sumWindows;
+    prevWindow[node] = newVal;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    cwnd[node] = newval/segmentSize;
+    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
 
 // Write to congestion window streams
@@ -287,16 +291,17 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    uint32_t n_nodes = 3; // number of nodes on client and server
+    int n_nodes = 120; // number of nodes on client and server
     nNodes = n_nodes;
+    initiateArray();
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "1p";
-    std::string tc_queueSize = "1p";
+    std::string queueSize = "100p";
+    std::string tc_queueSize = "100p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -306,9 +311,9 @@ main(int argc, char *argv[])
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
-    float stop_time = 300;
+    float stop_time = 700;
     float start_time = 0;
-    float start_tracing_time = 10;
+    float start_tracing_time = 200;
     bool enable_bot_trace = true;
 
     CommandLine cmd (__FILE__);
