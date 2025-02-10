@@ -180,6 +180,7 @@ StartTracingTransmitedPacket(){
     Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeCallback(&TxPacket));
 }
 
+double minB = 100.0, maxB = -100.0;
 
 //////////// CALCULATNG BETA /////////////////
 bool hasSynchrony = true;
@@ -196,7 +197,9 @@ std::vector<double> arrWti;             double sum_wti = 0.0;
 std::vector<double> wiwti;              double sum_wiwti = 0.0;
 
 std::vector<double> biwiwti;            double sum_biwiwti = 0.0;
-
+/// ////////////
+std::vector<double> biwi;            double sum_biwi = 0.0;
+std::vector<double> prevOldVal;            double sumPrevOldVal = 0.0;
 void initiateArray(){
     gotDip          = std::vector<bool>(nNodes+1, false);
     prevWindow      = std::vector<double>(nNodes+1, 0.0);
@@ -205,6 +208,8 @@ void initiateArray(){
     arrWti          = std::vector<double>(nNodes+1, 0.0);
     wiwti           = std::vector<double>(nNodes+1, 0.0);
     biwiwti         = std::vector<double>(nNodes+1, 0.0);
+    biwi         = std::vector<double>(nNodes+1, 0.0);
+    prevOldVal         = std::vector<double>(nNodes+1, 0.0);
 }
 
 
@@ -253,12 +258,25 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
 
     sumWindows += diff;
     if(hasSynchrony && (newval < oldval)){
-        getDipOfHost(node, -diff, prevSumWindows[node]/nNodes, prevWindow[node]);
+        // getDipOfHost(node, -diff, prevSumWindows[node]/nNodes, prevWindow[node]);
 
-        if(gotAll) {
-            double beta = getBeta();
-            NS_LOG_UNCOND("beta value: "<< beta);
-            NS_LOG_UNCOND("qth value: "<< giveQth(sumWindows/nNodes, beta));
+        // if(gotAll) {
+        //     double beta = getBeta();
+        //     minB = std::min(minB, beta);
+        //     maxB = std::max(maxB, beta);
+        //     NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB);
+        //     NS_LOG_UNCOND("qth value: "<< giveQth(sumWindows/nNodes, beta));
+        // }
+        
+        //////
+        sum_biwi -= (diff - biwi[node]); biwi[node] = diff;
+        sumPrevOldVal += (prevWindow[node] - prevOldVal[node]); prevOldVal[node] = prevWindow[node];
+        if(sumPrevOldVal){
+            double beta = sum_biwi/sumPrevOldVal;
+            minB = std::min(minB, beta);
+            maxB = std::max(maxB, beta);
+            NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<" "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
+            // NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         }
     }
 
@@ -291,7 +309,7 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    int n_nodes = 120; // number of nodes on client and server
+    int n_nodes = 60; // number of nodes on client and server
     nNodes = n_nodes;
     initiateArray();
     uint32_t del_ack_count = 2;
@@ -311,9 +329,9 @@ main(int argc, char *argv[])
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
-    float stop_time = 700;
+    float stop_time = 800;
     float start_time = 0;
-    float start_tracing_time = 200;
+    float start_tracing_time = 50;
     bool enable_bot_trace = true;
 
     CommandLine cmd (__FILE__);
