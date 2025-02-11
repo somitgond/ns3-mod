@@ -36,4 +36,3 @@ if __name__ == "__main__":
             cmd_to_run = ["./ns3", "run", "scratch/dumbbellRegularInterval.cc", "--", "--tcp_type_id=ns3::TcpNewReno"]
             subprocess.run(cmd_to_run)
 
-            

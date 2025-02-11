@@ -1,4 +1,3 @@
-
 * Notes regarding custom AQM
 
 1. when queue size at net device is increased (1000), while only
@@ -23,3 +22,38 @@
    while nd-qsize is ~230
    Does 0 means infinite buffer size ? Observation points to that
 6. 
+** TODO trace a packet through different layers
+** TODO synchronization matrix. each delta to RTT. last 50 seconds. take 5 second each to measure this matrix
+
+* Literature
+** Loss Synchronization and Router Buffer Sizing with High-Speed Versions of TCP
+*** Introduction and background
+	1) check if high-speed / aggressive versions of TCP gives high level of synchronizations or not ?
+        2) While they do give high levels of synchrony they both achieve high goodput and link utilization
+        3) if the BDP is large, cwnd may attain very large values before packets are lost; hence, after a loss takes place it may take the sender many RTT cycles before cwnd reaches again such large values.
+        4) adequately dimensioning router buffers for links running at Gb/s speeds. /B = C * RTT/, where /B/ = router buffer size, /C/ = rate of egress bottleneck link and /RTT/ is average /RTT/. As if /C/ is high, then /B/ is also pretty high.
+**** Congestion Control Algorithms for High-Speed Links: to address problem 3
+	- HighSpeed TCP (HSTCP) [3], Scalable TCP [4], FAST TCP [5], BIC [6] and CUBIC [7] TCP, H-TCP [8] and Compound TC
+        - they mostly address problem of fixed buffer size using congestion control algorithms
+        - they modify TCP’s congestion control algorithms, in particular the AIMD behavior in Congestion Avoidance
+        - When the congestion window gets “large”, senders using one of those protocols tend to seek for available bandwidth in a more aggressive way, and react to losses in a less conservative way, than a standard TCP sender.
+**** Router buffer sizing and high-bandwidth TCP versions: to address problem 4
+	- how to determine size B
+        - different literature proposes different methods.
+*** Related Work
+	- fairness is sensitive to loss synchronizations
+        - synchronization is sensitive to factors such as round-trip times and the number of hops
+        - with drop-tail queues, unfairness among flows is high, even when flows have similar RTTs; this seems to be due to the prevalence of synchronized loss patterns. They advocate the use of AQM as a way of mitigating the lack of fairness between high-speed flows
+*** Loss synchronizations Metrics
+**** Loss synchronization of given flows
+	- 
+*** Results
+	- loss synchronization metrics might not be useful performance indicators per se. As despite loss synchronization, high speed TCP versions achieve high throughput compared to other variants.
+*** Questions
+	- for global sync rate, M depends on tau or window size but while calculating R we are not looking at the window but loss event /l/
+        - what is *T* here, in determining single flow sync rate what is *T*?
+        - packets are moving through tc and nd layer even if tracing tc q_size shows 0. Almost similar behaviour even if situation is changed i.e q_size of tc and nd layer. What can be the cause? := because nd layer emulates nic and tc is in linux kernel.
+        - 
+* Notes
+	- using data 'tcp-dumbbell-regular-interval-it1'
+        - considering data between 200 and 400 seconds
