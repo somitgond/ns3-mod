@@ -5,6 +5,9 @@
 *~
 \#*#
 
+*.tex
+*.pdf
+data/
 .lock-ns3_linux_build
 # ignore results
 tcp-dumbbell*
