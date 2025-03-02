@@ -26,6 +26,7 @@ Active Queue Management using variable maxSize
 #include "ns3/netanim-module.h"
 
 #define MAX_SOURCES 100;
+#define GLOBAL_SYNC_THRESHOLD 0.2;
 
 using namespace ns3;
 
@@ -38,7 +39,7 @@ uint32_t segmentSize = 1400;
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
-int nNodes;
+int nNodes = 20;
 
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
@@ -46,6 +47,7 @@ std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 uint64_t queue_size;
 Ptr<OutputStreamWrapper> qSize_stream;
 Ptr<OutputStreamWrapper> tc_qSize_stream;
+
 
 uint64_t bottleneckTransimitted;
 Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
@@ -56,6 +58,19 @@ Ptr<OutputStreamWrapper> dropped_stream;
 // queue disc in router 1
 Ptr<QueueDisc> queueDisc_router = CreateObject<FifoQueueDisc>();
 
+/////////////////////////// calculating global sync matrix
+
+// single vector storing loss events
+std::vector<uint32_t> loss_events(nNodes, 0);
+
+double give_global_sync(){
+  int rate = 0;
+  for(int i = 0; i < nNodes; i++)
+	if(loss_events[i] == 1)
+	  rate++;
+  
+  return (double)rate/nNodes;
+}
 
 //////////////// get qth ///////////////
 
@@ -96,11 +111,13 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
 
 // set new size 
 void SetQueueSize(uint32_t qth) {
+  QueueSize currentSize = queueDisc_router->GetMaxSize();
+  NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
+  if(currentSize.GetValue() == qth)
+	return;
   std::string qth_str = std::to_string(qth) + "p";
   QueueSize newSize = QueueSize(qth_str);
   queueDisc_router->SetMaxSize(newSize);
-  QueueSize currentSize = queueDisc_router->GetMaxSize();
-  NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
   NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
 
@@ -283,6 +300,17 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     prevSumWindows[node] = sumWindows;
     prevWindow[node] = newVal;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// update loss events
+	if(newval/segmentSize < cwnd[node]){
+	  loss_events[node] = 1;
+	} else {
+	  loss_events[node] = 0;
+	}
+	// get global sync rate if it is greater than a parameter
+	if(give_global_sync() > GLOBAL_SYNC_THRESHOLD){
+	  NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+	  SetQueueSize(1000);
+	}
     cwnd[node] = newval/segmentSize;
     *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
@@ -309,8 +337,8 @@ start_tracing_timeCwnd (uint32_t n_nodes){
 int
 main(int argc, char *argv[])
 {
-    int n_nodes = 60; // number of nodes on client and server
-    nNodes = n_nodes;
+    int n_nodes; // number of nodes on client and server
+    n_nodes = nNodes;
     initiateArray();
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
@@ -318,8 +346,8 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "100p";
-    std::string tc_queueSize = "100p";
+    std::string queueSize = "1p";
+    std::string tc_queueSize = "10p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -482,8 +510,8 @@ main(int argc, char *argv[])
     // // two devices
     // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
-    Ptr<QueueDisc> queueDisc_router = queueDiscs.Get(0);
-    SetQueueSize(1000);
+    queueDisc_router = queueDiscs.Get(0);
+    //SetQueueSize(1000);
     // // tracing queue Size change
     // AsciiTraceHelper ascii;
     // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get (0))->GetQueue ();
