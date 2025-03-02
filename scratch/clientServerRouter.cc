@@ -200,7 +200,7 @@ StartTracingTransmitedPacket(){
 double minB = 100.0, maxB = -100.0;
 
 //////////// CALCULATNG BETA /////////////////
-bool hasSynchrony = true;
+bool hasSynchrony = false;
 std::vector<bool> gotDip;               bool gotAll = false;        int cntDips = 0;
 
 std::vector<double> prevWindow;
@@ -272,9 +272,21 @@ double getBeta(){
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     double oldVal = oldval, newVal = newval/segSize;
     double diff = newVal - prevWindow[node];
+	// update loss events
+	if(newval < oldval){
+	  loss_events[node] = 1;
+	} else {
+	  loss_events[node] = 0;
+	}
+	// get global sync rate if it is greater than a parameter
+	if(give_global_sync() > 0.2){
+	  //NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+	  // set appropriate qth 
+	  hasSynchrony = true;
+	}
 
     sumWindows += diff;
-    if(hasSynchrony && (newval < oldval)){
+    if(hasSynchrony ){
         // getDipOfHost(node, -diff, prevSumWindows[node]/nNodes, prevWindow[node]);
 
         // if(gotAll) {
@@ -296,21 +308,10 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
             // NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         }
     }
-
+	hasSynchrony = false;
     prevSumWindows[node] = sumWindows;
     prevWindow[node] = newVal;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// update loss events
-	if(newval/segmentSize < cwnd[node]){
-	  loss_events[node] = 1;
-	} else {
-	  loss_events[node] = 0;
-	}
-	// get global sync rate if it is greater than a parameter
-	if(give_global_sync() > GLOBAL_SYNC_THRESHOLD){
-	  NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-	  SetQueueSize(1000);
-	}
     cwnd[node] = newval/segmentSize;
     *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }

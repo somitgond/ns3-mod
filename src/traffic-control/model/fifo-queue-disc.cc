@@ -64,7 +64,6 @@ FifoQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   if (GetCurrentSize () + item > GetMaxSize ())
     {
       NS_LOG_LOGIC ("Queue full -- dropping pkt");
-      NS_LOG_UNCOND ("Queue full -- dropping pkt");
       DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
       return false;
     }
