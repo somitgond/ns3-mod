@@ -173,10 +173,10 @@ main(int argc, char *argv[])
     std::string qsizeTrFileName = "qsizeTrace-dumbbell";;
     std::string droppedTrFileName = "droppedPacketTrace-dumbbell";
     std::string bottleneckTxFileName = "bottleneckTx-dumbbell";
-    float stopTime = 800;
+    float stopTime = 500;
     float startTime = 0;
     float startTracing = 10;
-    bool enbBotTrace = true;
+    bool enbBotTrace = 0;
 
     CommandLine cmd (__FILE__);
     cmd.AddValue ("nNodes", "Number of nodes in right and left", nNodes);
@@ -194,6 +194,7 @@ main(int argc, char *argv[])
     Config::SetDefault (queueDisc + "::MaxSize", QueueSizeValue (QueueSize (queueSize)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
+	NS_LOG_UNCOND("TCP variant: " << tcpTypeId);
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
     nodes.Create (2+nNodes*2);
