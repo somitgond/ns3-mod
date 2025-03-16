@@ -36,8 +36,6 @@ uint32_t segmentSize = 1400;
 uint32_t nNodes = 60; // number of nodes on client and server
 
 std::vector<uint32_t> cwndChanges(nNodes+1, 0); // keep track of latest cwnd value of client i
-std::vector<uint32_t> cwndChanges1(nNodes+1, 0); // keep track of latest cwnd value of client i
-std::vector<uint32_t> cwndChangesCount(nNodes+1, 0); // keep track of cwnd change count
 
 // std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams; // file stream of cwnd
@@ -129,15 +127,6 @@ static void
 writeCwndToFile(uint32_t nNodes){
     for(uint32_t i = 0; i < nNodes; i++){
         auto val = cwndChanges[i];
-//        if(cwndChanges1[i] == cwndChanges[i]){
- //           cwndChangesCount[i]++;
-  //      }else {
-   //         cwndChangesCount[i] = 0;
-    //    }
-     //   if(cwndChangesCount[i] >= 30){
-      //      val = 0;
-       // }
-        //cwndChanges1[i] = cwndChanges[i];
         *cwnd_streams[i]->GetStream()<< Simulator::Now().GetSeconds () << " " << val<< std::endl;
     }
 }
@@ -164,8 +153,8 @@ main(int argc, char *argv[])
     //uint32_t bytesToSend = 100 * 1e6; // 100 MB
     std::string tcpTypeId = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queueDisc = "ns3::FifoQueueDisc";
-    std::string queueSize = "2048p";
-    std::string RTT = "198ms";   		//round-trip time of each TCP flow
+    std::string queueSize = "2084p";
+    std::string RTT = "98ms";   		//round-trip time of each TCP flow
     std::string bottleneckBandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneckDelay = "1ms";          //bottleneck link has negligible propagation delay
     std::string accessBandwidth = "2Mbps";
