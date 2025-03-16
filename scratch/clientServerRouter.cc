@@ -230,18 +230,18 @@ void initiateArray(){
 }
 
 
-static void getDipOfHost(int node, double biwi, double wti, double wi){
-    sum_wti2 += (wti*wti - wti2[node]); wti2[node] = wti*wti;
-    sum_wti += (wti - arrWti[node]); arrWti[node] = wti;
-    sum_wiwti += (wi*wti - wiwti[node]); wiwti[node] = wi*wti;
-    sum_biwiwti += (biwi*wti - biwiwti[node]); biwiwti[node] = biwi*wti;
+// static void getDipOfHost(int node, double biwi, double wti, double wi){
+//     sum_wti2 += (wti*wti - wti2[node]); wti2[node] = wti*wti;
+//     sum_wti += (wti - arrWti[node]); arrWti[node] = wti;
+//     sum_wiwti += (wi*wti - wiwti[node]); wiwti[node] = wi*wti;
+//     sum_biwiwti += (biwi*wti - biwiwti[node]); biwiwti[node] = biwi*wti;
 
-    if(!gotDip[node]){
-        gotDip[node] = true;
-        cntDips++;
-    }
-    if(cntDips == nNodes) gotAll = true;
-}
+//     if(!gotDip[node]){
+//         gotDip[node] = true;
+//         cntDips++;
+//     }
+//     if(cntDips == nNodes) gotAll = true;
+// }
 
 ///// getBeta returns the beta_optimal at anytime.
 double getBeta(){
@@ -304,8 +304,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
             double beta = sum_biwi/sumPrevOldVal;
             minB = std::min(minB, beta);
             maxB = std::max(maxB, beta);
-            NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<" "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
-            // NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
+            NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<"       beta:   "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
+            NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         }
     }
 	hasSynchrony = false;
@@ -347,10 +347,10 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "1p";
-    std::string tc_queueSize = "10p";
+    std::string queueSize = "1000p";
+    std::string tc_queueSize = "1000p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
-    std::string bottleneck_bandwidth = "2Mbps";  //bandwidth of the bottleneck link
+    std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
@@ -455,7 +455,7 @@ main(int argc, char *argv[])
     PointToPointHelper p2p_router;
     p2p_router.SetDeviceAttribute ("DataRate", StringValue (bottleneck_bandwidth));
     p2p_router.SetChannelAttribute ("Delay", StringValue (bottleneck_delay));
-    p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (queueSize)));
+    p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize (queueSize)));
     // p2p_router.DisableFlowControl();
 
     
@@ -511,8 +511,21 @@ main(int argc, char *argv[])
     // // two devices
     // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
-    queueDisc_router = queueDiscs.Get(0);
-    //SetQueueSize(1000);
+    Ptr<QueueDisc> queueDisc_router = queueDiscs.Get(0);
+
+
+
+
+
+
+    ///////-------------------->>>>>>>>>>>>>>>>>>>>>
+    SetQueueSize(36);
+    //////--------------------->>>>>>>>>>>>>>>>>>>>>
+
+
+
+
+
     // // tracing queue Size change
     // AsciiTraceHelper ascii;
     // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get (0))->GetQueue ();
