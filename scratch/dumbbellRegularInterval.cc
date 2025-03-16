@@ -29,7 +29,7 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 
-std::string dir = "tcp-dumbbell/";
+std::string dir = "tcp-dumbbell-regular/";
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
