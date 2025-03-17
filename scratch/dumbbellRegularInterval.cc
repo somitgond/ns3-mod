@@ -29,15 +29,16 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 
-std::string dir = "tcp-dumbbell/";
+std::string dir = "tcp-dumbbell-regular/";
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
 uint32_t nNodes = 60; // number of nodes on client and server
 
 std::vector<uint32_t> cwndChanges(nNodes+1, 0); // keep track of latest cwnd value of client i
-std::vector<uint32_t> cwndChanges1(nNodes+1, 0); // keep track of latest cwnd value of client i
-std::vector<uint32_t> cwndChangesCount(nNodes+1, 0); // keep track of cwnd change count
+
+// to store parameters
+Ptr<OutputStreamWrapper> parameters;
 
 // std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams; // file stream of cwnd
@@ -129,15 +130,6 @@ static void
 writeCwndToFile(uint32_t nNodes){
     for(uint32_t i = 0; i < nNodes; i++){
         auto val = cwndChanges[i];
-//        if(cwndChanges1[i] == cwndChanges[i]){
- //           cwndChangesCount[i]++;
-  //      }else {
-   //         cwndChangesCount[i] = 0;
-    //    }
-     //   if(cwndChangesCount[i] >= 30){
-      //      val = 0;
-       // }
-        //cwndChanges1[i] = cwndChanges[i];
         *cwnd_streams[i]->GetStream()<< Simulator::Now().GetSeconds () << " " << val<< std::endl;
     }
 }
@@ -161,7 +153,7 @@ main(int argc, char *argv[])
     uint32_t delAckCount = 2;
     uint32_t cleanup_time = 2;
     uint32_t initialCwnd = 10;
-    uint32_t bytesToSend = 100 * 1e6; // 100 MB
+    //uint32_t bytesToSend = 100 * 1e6; // 100 MB
     std::string tcpTypeId = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queueDisc = "ns3::FifoQueueDisc";
     std::string queueSize = "2084p";
@@ -173,10 +165,11 @@ main(int argc, char *argv[])
     std::string qsizeTrFileName = "qsizeTrace-dumbbell";;
     std::string droppedTrFileName = "droppedPacketTrace-dumbbell";
     std::string bottleneckTxFileName = "bottleneckTx-dumbbell";
-    float stopTime = 800;
+	std::string parametersFileName = "parameters";
+    float stopTime = 500;
     float startTime = 0;
     float startTracing = 10;
-    bool enbBotTrace = true;
+    bool enbBotTrace = 0;
 
     CommandLine cmd (__FILE__);
     cmd.AddValue ("nNodes", "Number of nodes in right and left", nNodes);
@@ -193,6 +186,8 @@ main(int argc, char *argv[])
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p")));
     Config::SetDefault (queueDisc + "::MaxSize", QueueSizeValue (QueueSize (queueSize)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
+
+	NS_LOG_UNCOND("TCP variant: " << tcpTypeId);
 
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
@@ -326,7 +321,20 @@ main(int argc, char *argv[])
     retVal = system(dirToSave.c_str ());
     NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
- // Configuring file stream to write the Qsize
+	// write parameters
+	AsciiTraceHelper parameters_helper;
+
+	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
+	*parameters->GetStream() << "Nodes : " << "\t" << nNodes << std::endl;
+    *parameters->GetStream() << "TCP type id: " << "\t" << tcpTypeId << std::endl;
+	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
+	*parameters->GetStream() << "Bottleneck Delay: " << "\t" << bottleneckDelay << std::endl;
+	*parameters->GetStream() << "Bottleneck Bandwidth: " << "\t" << bottleneckBandwidth << std::endl;
+	*parameters->GetStream() << "Queue Disc: " << "\t" << queueDisc << std::endl;
+	*parameters->GetStream() << "Queue Size: " << "\t" << queueSize << std::endl;
+	*parameters->GetStream() << "Simulation Stop time: " << "\t" << stopTime << std::endl;
+	
+	// Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
     qSize_stream = ascii_qsize.CreateFileStream(dir+qsizeTrFileName+".txt");
 

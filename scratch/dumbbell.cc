@@ -142,7 +142,7 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queue_size = "500p";
+    std::string queue_size = "2084p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -151,10 +151,10 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
-    float stop_time = 100;
+    float stop_time = 500;
     float start_time = 0;
     float start_tracing_time = 10;
-    bool enable_bot_trace = true;
+    bool enable_bot_trace = 0;
 
     CommandLine cmd (__FILE__);
     cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
    // Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
-    NS_LOG_UNCOND("Pass");
+    NS_LOG_UNCOND("TCP variant: "<<tcp_type_id);
 
     // two for router and n_nodes on left and right of bottleneck
     NodeContainer nodes;
