@@ -39,9 +39,13 @@ uint32_t segmentSize = 1400;
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
-int nNodes = 60;
+uint32_t nNodes = 60;
+uint32_t n_nodes = nNodes; 
 
-std::vector<uint32_t> cwnd;
+// to store parameters
+Ptr<OutputStreamWrapper> parameters;
+
+std::vector<uint32_t> cwnd(nNodes+1, 0);
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 
 uint64_t queue_size;
@@ -321,15 +325,12 @@ start_tracing_timeCwnd (uint32_t n_nodes){
         std::string fileName = dir+"dumbbell-" + std::to_string(i+2) + ".cwnd";
         Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream (fileName);
         cwnd_streams.push_back(stream);
-        // cwnd.push_back(i);
     }
 }
 
 int
 main(int argc, char *argv[])
 {
-    int n_nodes; // number of nodes on client and server
-    n_nodes = nNodes;
     initiateArray();
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
@@ -348,10 +349,11 @@ main(int argc, char *argv[])
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
+	std::string parametersFileName = "parameters";
     float stop_time = 500;
     float start_time = 0;
-    float start_tracing_time = 50;
-    bool enable_bot_trace = true;
+    float start_tracing_time = 5;
+    bool enable_bot_trace = 0;
 
     CommandLine cmd (__FILE__);
     cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
@@ -386,36 +388,6 @@ main(int argc, char *argv[])
    // Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
-    NS_LOG_UNCOND("Pass");
-    // Print all values to std::cout
-    // std::cout << "Configuration Values:" << std::endl;
-    // std::cout << "n_nodes: " << n_nodes << std::endl;
-    
-
-    // std::cout << "del_ack_count: " << del_ack_count << std::endl;
-    // std::cout << "cleanup_time: " << cleanup_time << " seconds" << std::endl;
-    // std::cout << "initial_cwnd: " << initial_cwnd << std::endl;
-    // std::cout << "bytes_to_send: " << bytes_to_send << " bytes" << std::endl;
-    // std::cout << "tcp_type_id: " << tcp_type_id << std::endl;
-    // std::cout << "queue_disc: " << queue_disc << std::endl;
-    // std::cout << "queue_size: " << queue_size << std::endl;
-    // std::cout << "RTT: " << RTT << std::endl;
-    // std::cout << "bottleneck_bandwidth: " << bottleneck_bandwidth << std::endl;
-    // std::cout << "bottleneck_delay: " << bottleneck_delay << std::endl;
-    // std::cout << "access_bandwidth: " << access_bandwidth << std::endl;
-    // std::cout << "root_dir: " << root_dir << std::endl;
-    // std::cout << "qsize_trace_filename: " << qsize_trace_filename << std::endl;
-    // std::cout << "dropped_trace_filename: " << dropped_trace_filename << std::endl;
-    // std::cout << "bottleneck_tx_filename: " << bottleneck_tx_filename << std::endl;
-    // std::cout << "stop_time: " << stop_time << " seconds" << std::endl;
-    // std::cout << "start_time: " << start_time << " seconds" << std::endl;
-    // std::cout << "start_tracing_time: " << start_tracing_time << " seconds" << std::endl;
-    // std::cout << "enable_bot_trace: " << (enable_bot_trace ? "true" : "false") << std::endl;
-    // return 0;
-
-
-    // Setting the cwnd array
-    cwnd = std::vector<uint32_t>(n_nodes+1, 0);
 
     // two for router and n_nodes on left and right of bottleneck
     NodeContainer nodes;
@@ -602,6 +574,21 @@ main(int argc, char *argv[])
     retVal = system(dirToSave.c_str ());
     NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
+		// write parameters
+	AsciiTraceHelper parameters_helper;
+
+	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
+	*parameters->GetStream() << "regular cwnd sampling." << std::endl;
+	*parameters->GetStream() << "Nodes : " << "\t" << n_nodes << std::endl;
+    *parameters->GetStream() << "TCP type id: " << "\t" << tcp_type_id << std::endl;
+	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
+	*parameters->GetStream() << "Bottleneck Delay: " << "\t" << bottleneck_delay << std::endl;
+	*parameters->GetStream() << "Bottleneck Bandwidth: " << "\t" << bottleneck_bandwidth << std::endl;
+	*parameters->GetStream() << "Queue Disc: " << "\t" << queue_disc << std::endl;
+	*parameters->GetStream() << "Queue Size: " << "\t" << queue_size << std::endl;
+	*parameters->GetStream() << "Simulation Stop time: " << "\t" << stop_time << std::endl;
+
+
     // Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
     qSize_stream = ascii_qsize.CreateFileStream(dir+qsize_trace_filename+".txt");
@@ -622,20 +609,18 @@ main(int argc, char *argv[])
     Simulator::Schedule( Seconds(stime), &StartTracingQueueSize);
     Simulator::Schedule( Seconds(stime), &StartTracingTransmitedPacket);
 	Simulator::Schedule( Seconds(stime), &updateCwndValues, n_nodes);
-    Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, n_nodes);
-    // auto nq = 100;
-    int tt = 1;
+	//    Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, n_nodes);
+
     // start tracing Queue Size and Dropped Files
     Simulator::Schedule( Seconds(stime), &TraceDroppedPacket, dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files periodically ( 1 sec. )
     for (auto time = stime+start_tracing_time; time < stop_time; time+=0.1)
     {   
-        // Simulator::Schedule( Seconds(time), &writeCwndToFile, n_nodes);
-        Simulator::Schedule( Seconds(time), &TraceQueueSizeTc, queueDisc);
-        Simulator::Schedule( Seconds(time), &TraceQueueSize);
-        Simulator::Schedule( Seconds(time), &TraceBottleneckTx);
-        Simulator::Schedule( Seconds(time), &TraceDroppedPkts);
-        tt++;
+	  Simulator::Schedule( Seconds(time), &writeCwndToFile, n_nodes);
+	  Simulator::Schedule( Seconds(time), &TraceQueueSizeTc, queueDisc);
+	  Simulator::Schedule( Seconds(time), &TraceQueueSize);
+	  Simulator::Schedule( Seconds(time), &TraceBottleneckTx);
+	  Simulator::Schedule( Seconds(time), &TraceDroppedPkts);
     }
     
     if ( enable_bot_trace == 1 ){
