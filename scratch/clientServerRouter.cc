@@ -293,13 +293,23 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     prevWindow[node] = newVal;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     cwnd[node] = newval/segmentSize;
-    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
+	//    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }
+
+// Update values as cwndChanges
+static void 
+updateCwndValues(uint32_t nNodes){
+    for(uint32_t i = 0; i < nNodes; i++){
+        std::string path = "/NodeList/" + std::to_string(i+2) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+        Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
+    }
+}
+
 
 // Write to congestion window streams
 static void writeCwndToFile(uint32_t n_nodes){
     for(uint32_t i = 0; i < n_nodes; i++){
-        Config::ConnectWithoutContext("/NodeList/" + std::to_string(i+2) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeBoundCallback(&CwndTracer, i));
+	  *cwnd_streams[i]->GetStream()<< Simulator::Now().GetSeconds () << " " << cwnd[i]<< std::endl;	  
     }
 }
 
@@ -611,6 +621,7 @@ main(int argc, char *argv[])
     Simulator::Schedule( Seconds(stime), &start_tracing_timeCwnd, n_nodes);
     Simulator::Schedule( Seconds(stime), &StartTracingQueueSize);
     Simulator::Schedule( Seconds(stime), &StartTracingTransmitedPacket);
+	Simulator::Schedule( Seconds(stime), &updateCwndValues, n_nodes);
     Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, n_nodes);
     // auto nq = 100;
     int tt = 1;
