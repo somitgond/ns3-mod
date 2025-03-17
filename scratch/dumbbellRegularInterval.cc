@@ -325,6 +325,7 @@ main(int argc, char *argv[])
 	AsciiTraceHelper parameters_helper;
 
 	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
+	*parameters->GetStream() << "regular sampling of cwnd." << std::endl;
 	*parameters->GetStream() << "Nodes : " << "\t" << nNodes << std::endl;
     *parameters->GetStream() << "TCP type id: " << "\t" << tcpTypeId << std::endl;
 	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;

@@ -34,7 +34,8 @@ uint32_t prev = 0;
 Time prevTime = Seconds (0);
 uint32_t segmentSize = 1400;
 
-
+// to store parameters
+Ptr<OutputStreamWrapper> parameters;
 
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
@@ -142,7 +143,7 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queue_size = "2084p";
+    std::string queue_size = "2048p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -151,6 +152,7 @@ main(int argc, char *argv[])
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
+	std::string parametersFileName = "parameters";
     float stop_time = 500;
     float start_time = 0;
     float start_tracing_time = 10;
@@ -323,7 +325,21 @@ main(int argc, char *argv[])
     retVal = system(dirToSave.c_str ());
     NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
- // Configuring file stream to write the Qsize
+	// write parameters
+	AsciiTraceHelper parameters_helper;
+
+	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
+	*parameters->GetStream() << "sampling cwnd whenever it changes." << std::endl;
+	*parameters->GetStream() << "Nodes : " << "\t" << n_nodes << std::endl;
+    *parameters->GetStream() << "TCP type id: " << "\t" << tcp_type_id << std::endl;
+	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
+	*parameters->GetStream() << "Bottleneck Delay: " << "\t" << bottleneck_delay << std::endl;
+	*parameters->GetStream() << "Bottleneck Bandwidth: " << "\t" << bottleneck_bandwidth << std::endl;
+	*parameters->GetStream() << "Queue Disc: " << "\t" << queue_disc << std::endl;
+	*parameters->GetStream() << "Queue Size: " << "\t" << queue_size << std::endl;
+	*parameters->GetStream() << "Simulation Stop time: " << "\t" << stop_time << std::endl;
+
+	// Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
     qSize_stream = ascii_qsize.CreateFileStream(dir+qsize_trace_filename+".txt");
 
