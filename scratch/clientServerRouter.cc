@@ -39,7 +39,7 @@ uint32_t segmentSize = 1400;
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
-int nNodes = 20;
+int nNodes = 60;
 
 std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
@@ -75,7 +75,8 @@ double give_global_sync(){
 //////////////// get qth ///////////////
 
 int giveQth(double w_av, double beta){
-    double pi = 3.141593, c = 200, tao = 0.5;
+    double capacity = 100;  //in mbps
+    double pi = 3.141593, c = (capacity*1000000/(segSize*8*nNodes)), tao = 0.5;
     double val = log(pi/2);
 
     // std::cout<<val<<std::endl;
@@ -84,9 +85,7 @@ int giveQth(double w_av, double beta){
     double diff = 100000;
     for(int i = 1; i<2048; i++){
         double estimate = log(i) + i*(log(w_av/(c*tao))) + log(w_av*beta);
-        // std::cout<<estimate<<" "<<fabs(val-estimate)<<std::endl;
-
-        if(fabs(val-estimate) < diff){
+        if(fabs(val-estimate) < diff && estimate <= val){
             diff = fabs(val-estimate);
             qth = i;
         }
@@ -249,28 +248,13 @@ double getBeta(){
     return (sum_wti2 - sum_wiwti + sum_biwiwti)/sum_wti;
 }
 
-// static void resetValues(){
-//     gotDip = std::vector<bool>(nNodes, false);
-//     gotAll = false;
-//     cntDips = 0;
-//     sum_wti2 = 0.0;
-//     sum_wti = 0.0;
-//     sum_wiwti = 0.0;
-//     sum_biwiwti = 0.0;
-
-//     arrSumWindows = std::vector<double>(nNodes+1, 0.0);
-//     wti2 = std::vector<double>(nNodes+1, 0.0);
-//     arrWti = std::vector<double>(nNodes+1, 0.0);
-//     wiwti = std::vector<double>(nNodes+1, 0.0);
-//     biwiwti = std::vector<double>(nNodes+1, 0.0);
-// }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
-    double oldVal = oldval, newVal = newval/segSize;
+    
+    double oldVal = oldval/segSize, newVal = newval/segSize;
     double diff = newVal - prevWindow[node];
 	// update loss events
 	if(newval < oldval){
@@ -285,18 +269,9 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
 	  hasSynchrony = true;
 	}
 
+    NS_LOG_UNCOND("Old and New :"<< oldVal<<" "<<newVal);
     sumWindows += diff;
-    if(hasSynchrony ){
-        // getDipOfHost(node, -diff, prevSumWindows[node]/nNodes, prevWindow[node]);
-
-        // if(gotAll) {
-        //     double beta = getBeta();
-        //     minB = std::min(minB, beta);
-        //     maxB = std::max(maxB, beta);
-        //     NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB);
-        //     NS_LOG_UNCOND("qth value: "<< giveQth(sumWindows/nNodes, beta));
-        // }
-        
+    if(newval < oldval){
         //////
         sum_biwi -= (diff - biwi[node]); biwi[node] = diff;
         sumPrevOldVal += (prevWindow[node] - prevOldVal[node]); prevOldVal[node] = prevWindow[node];
@@ -308,7 +283,12 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
             NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         }
     }
-	hasSynchrony = false;
+
+    if(hasSynchrony){
+        NS_LOG_UNCOND("qth value In synchrony: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
+        hasSynchrony = false;
+    }
+
     prevSumWindows[node] = sumWindows;
     prevWindow[node] = newVal;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -347,8 +327,8 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "1000p";
-    std::string tc_queueSize = "1000p";
+    std::string queueSize = "100p";
+    std::string tc_queueSize = "100p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneck_delay = "1ms";          //bottleneck link has negligible propagation delay
@@ -358,7 +338,7 @@ main(int argc, char *argv[])
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
-    float stop_time = 800;
+    float stop_time = 500;
     float start_time = 0;
     float start_tracing_time = 50;
     bool enable_bot_trace = true;
@@ -519,7 +499,7 @@ main(int argc, char *argv[])
 
 
     ///////-------------------->>>>>>>>>>>>>>>>>>>>>
-    SetQueueSize(36);
+    SetQueueSize(100);
     //////--------------------->>>>>>>>>>>>>>>>>>>>>
 
 
