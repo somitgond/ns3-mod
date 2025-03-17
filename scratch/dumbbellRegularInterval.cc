@@ -37,6 +37,9 @@ uint32_t nNodes = 60; // number of nodes on client and server
 
 std::vector<uint32_t> cwndChanges(nNodes+1, 0); // keep track of latest cwnd value of client i
 
+// to store parameters
+Ptr<OutputStreamWrapper> parameters;
+
 // std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams; // file stream of cwnd
 
@@ -154,7 +157,7 @@ main(int argc, char *argv[])
     std::string tcpTypeId = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queueDisc = "ns3::FifoQueueDisc";
     std::string queueSize = "2084p";
-    std::string RTT = "98ms";   		//round-trip time of each TCP flow
+    std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneckBandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneckDelay = "1ms";          //bottleneck link has negligible propagation delay
     std::string accessBandwidth = "2Mbps";
@@ -162,6 +165,7 @@ main(int argc, char *argv[])
     std::string qsizeTrFileName = "qsizeTrace-dumbbell";;
     std::string droppedTrFileName = "droppedPacketTrace-dumbbell";
     std::string bottleneckTxFileName = "bottleneckTx-dumbbell";
+	std::string parametersFileName = "parameters";
     float stopTime = 500;
     float startTime = 0;
     float startTracing = 10;
@@ -184,6 +188,7 @@ main(int argc, char *argv[])
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
 	NS_LOG_UNCOND("TCP variant: " << tcpTypeId);
+
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
     nodes.Create (2+nNodes*2);
@@ -316,7 +321,20 @@ main(int argc, char *argv[])
     retVal = system(dirToSave.c_str ());
     NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
- // Configuring file stream to write the Qsize
+	// write parameters
+	AsciiTraceHelper parameters_helper;
+
+	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
+	*parameters->GetStream() << "Nodes : " << "\t" << nNodes << std::endl;
+    *parameters->GetStream() << "TCP type id: " << "\t" << tcpTypeId << std::endl;
+	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
+	*parameters->GetStream() << "Bottleneck Delay: " << "\t" << bottleneckDelay << std::endl;
+	*parameters->GetStream() << "Bottleneck Bandwidth: " << "\t" << bottleneckBandwidth << std::endl;
+	*parameters->GetStream() << "Queue Disc: " << "\t" << queueDisc << std::endl;
+	*parameters->GetStream() << "Queue Size: " << "\t" << queueSize << std::endl;
+	*parameters->GetStream() << "Simulation Stop time: " << "\t" << stopTime << std::endl;
+	
+	// Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
     qSize_stream = ascii_qsize.CreateFileStream(dir+qsizeTrFileName+".txt");
 
