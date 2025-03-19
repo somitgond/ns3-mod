@@ -156,7 +156,7 @@ main(int argc, char *argv[])
     //uint32_t bytesToSend = 100 * 1e6; // 100 MB
     std::string tcpTypeId = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queueDisc = "ns3::FifoQueueDisc";
-    std::string queueSize = "2084p";
+    std::string queueSize = "500p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneckBandwidth = "100Mbps";  //bandwidth of the bottleneck link
     std::string bottleneckDelay = "1ms";          //bottleneck link has negligible propagation delay
