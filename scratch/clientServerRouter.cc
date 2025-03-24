@@ -385,7 +385,7 @@ main(int argc, char *argv[])
     Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (del_ack_count));
     Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (segmentSize));
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p")));
-   // Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
+	// Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
 
