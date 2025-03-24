@@ -40,7 +40,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
-uint32_t n_nodes = nNodes; 
+
 
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
@@ -311,16 +311,16 @@ updateCwndValues(uint32_t nNodes){
 
 
 // Write to congestion window streams
-static void writeCwndToFile(uint32_t n_nodes){
-    for(uint32_t i = 0; i < n_nodes; i++){
+static void writeCwndToFile(uint32_t nNodes){
+    for(uint32_t i = 0; i < nNodes; i++){
 	  *cwnd_streams[i]->GetStream()<< Simulator::Now().GetSeconds () << " " << cwnd[i]<< std::endl;	  
     }
 }
 
 // initialize tracing cwnd streams
 static void 
-start_tracing_timeCwnd (uint32_t n_nodes){
-    for(uint32_t i = 0 ; i < n_nodes; i++){
+start_tracing_timeCwnd (uint32_t nNodes){
+    for(uint32_t i = 0 ; i < nNodes; i++){
         AsciiTraceHelper ascii;
         std::string fileName = dir+"dumbbell-" + std::to_string(i+2) + ".cwnd";
         Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream (fileName);
@@ -356,7 +356,7 @@ main(int argc, char *argv[])
     bool enable_bot_trace = 0;
 
     CommandLine cmd (__FILE__);
-    cmd.AddValue ("n_nodes", "Number of nodes in right and left", n_nodes);
+    cmd.AddValue ("nNodes", "Number of nodes in right and left", nNodes);
     // cmd.AddValue ("del_ack_count", "del Ack Count", del_ack_count);
     // cmd.AddValue ("cleanup_time", "Clean up time before simulation ends", cleanup_time);
     // cmd.AddValue ("initial_cwnd", "Initial cwnd Size", initial_cwnd);
@@ -389,20 +389,20 @@ main(int argc, char *argv[])
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
 
 
-    // two for router and n_nodes on left and right of bottleneck
+    // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
-    nodes.Create (2+n_nodes*2);
+    nodes.Create (2+nNodes*2);
     // Source nodes
-    NodeContainer leftNodes [n_nodes];
+    NodeContainer leftNodes [nNodes];
     // Destination nodes
-    NodeContainer rightNodes [n_nodes];
+    NodeContainer rightNodes [nNodes];
 
     // router
     NodeContainer r1r2 = NodeContainer(nodes.Get(0), nodes.Get(1));
 
-    for( uint32_t i = 0; i< n_nodes ; i++){
+    for( uint32_t i = 0; i< nNodes ; i++){
         leftNodes[i] = NodeContainer(nodes.Get(i+2), nodes.Get(0));
-        rightNodes[i] = NodeContainer(nodes.Get(2+n_nodes+i), nodes.Get(1));
+        rightNodes[i] = NodeContainer(nodes.Get(2+nNodes+i), nodes.Get(1));
     }
 
     // creating channel
@@ -421,27 +421,27 @@ main(int argc, char *argv[])
     // p2p_router.DisableFlowControl();
 
     
-    PointToPointHelper p2p_s[n_nodes], p2p_d[n_nodes];
-    for (uint32_t i = 0; i < n_nodes; i++)
+    PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
+    for (uint32_t i = 0; i < nNodes; i++)
     {
         double delay = (x->GetValue())/2;
         //std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
         p2p_s[i].SetDeviceAttribute ("DataRate", StringValue(access_bandwidth));
         p2p_s[i].SetChannelAttribute ("Delay", StringValue(delay_str));
-        p2p_s[i].SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(0/n_nodes)+"p"))); // p in 1000p stands for packets
+        p2p_s[i].SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(0/nNodes)+"p"))); // p in 1000p stands for packets
         p2p_s[i].DisableFlowControl();
         
         p2p_d[i].SetDeviceAttribute ("DataRate", StringValue(access_bandwidth));
         p2p_d[i].SetChannelAttribute ("Delay", StringValue(delay_str));
-        p2p_d[i].SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(0/n_nodes)+"p"))); // p in 1000p stands for packets
+        p2p_d[i].SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(0/nNodes)+"p"))); // p in 1000p stands for packets
         p2p_d[i].DisableFlowControl();
     }
 
     NetDeviceContainer r1r2ND = p2p_router.Install(r1r2);
 
     std::vector<NetDeviceContainer> leftND, rightND;
-    for(uint32_t i = 0 ; i < n_nodes; i++){
+    for(uint32_t i = 0 ; i < nNodes; i++){
         leftND.push_back(p2p_s[i].Install(leftNodes[i]));
         rightND.push_back(p2p_d[i].Install(rightNodes[i]));
     }
@@ -507,12 +507,12 @@ main(int argc, char *argv[])
     Ipv4InterfaceContainer r1r2Ip =  ipv4.Assign(r1r2ND);
 
     std::vector<Ipv4InterfaceContainer> lIp, rIp; 
-    for(uint32_t i = 0 ; i < n_nodes; i ++){
+    for(uint32_t i = 0 ; i < nNodes; i ++){
         std::string ip = "10.1."+std::to_string(i)+".0";
         ipv4.SetBase(ip.c_str(), "255.255.255.0");
         lIp.push_back(ipv4.Assign(leftND[i]));
 
-        std::string ip2 = "10.1."+std::to_string(i+n_nodes)+".0";
+        std::string ip2 = "10.1."+std::to_string(i+nNodes)+".0";
         ipv4.SetBase(ip2.c_str(), "255.255.255.0");
         rIp.push_back(ipv4.Assign(rightND[i]));
 
@@ -523,19 +523,19 @@ main(int argc, char *argv[])
     // Attack sink to all nodes
     uint16_t port = 50000;
     PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny(), port));
-    Address sinkAddress[n_nodes];
-    ApplicationContainer sinkApp[n_nodes];
+    Address sinkAddress[nNodes];
+    ApplicationContainer sinkApp[nNodes];
     
-    for(uint32_t i = 0 ; i < n_nodes; i++){
+    for(uint32_t i = 0 ; i < nNodes; i++){
         sinkAddress[i] = *(new Address(InetSocketAddress(rIp[i].GetAddress(0), port)));
-        sinkApp[i] = packetSinkHelper.Install(nodes.Get(2 + n_nodes + i));
+        sinkApp[i] = packetSinkHelper.Install(nodes.Get(2 + nNodes + i));
         sinkApp[i].Start(Seconds(start_time));
         sinkApp[i].Stop(Seconds(stop_time));
     }
 
     // Installing BulkSend on each node on left
-    Ptr<Socket> ns3TcpSocket[n_nodes];
-    ApplicationContainer sourceApps[n_nodes];
+    Ptr<Socket> ns3TcpSocket[nNodes];
+    ApplicationContainer sourceApps[nNodes];
 
     double mean = 0.1;   // more like a ~ 0.06
     double bound = 1;
@@ -545,7 +545,7 @@ main(int argc, char *argv[])
 
     double stime = start_time;
     // Configuring the application at each source node.
-    for (uint32_t i = 0; i < n_nodes; i++)
+    for (uint32_t i = 0; i < nNodes; i++)
     {
         BulkSendHelper tmp_source("ns3::TcpSocketFactory",InetSocketAddress (rIp[i].GetAddress (0), port));
            
@@ -579,7 +579,7 @@ main(int argc, char *argv[])
 
 	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
 	*parameters->GetStream() << "regular cwnd sampling." << std::endl;
-	*parameters->GetStream() << "Nodes : " << "\t" << n_nodes << std::endl;
+	*parameters->GetStream() << "Nodes : " << "\t" << nNodes << std::endl;
     *parameters->GetStream() << "TCP type id: " << "\t" << tcp_type_id << std::endl;
 	*parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
 	*parameters->GetStream() << "Bottleneck Delay: " << "\t" << bottleneck_delay << std::endl;
@@ -605,18 +605,18 @@ main(int argc, char *argv[])
     dropped_stream = ascii_dropped.CreateFileStream (dir+dropped_trace_filename + ".txt");
     // start tracing the congestion window size and qSize
 
-    Simulator::Schedule( Seconds(stime), &start_tracing_timeCwnd, n_nodes);
+    Simulator::Schedule( Seconds(stime), &start_tracing_timeCwnd, nNodes);
     Simulator::Schedule( Seconds(stime), &StartTracingQueueSize);
     Simulator::Schedule( Seconds(stime), &StartTracingTransmitedPacket);
-	Simulator::Schedule( Seconds(stime), &updateCwndValues, n_nodes);
-	//    Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, n_nodes);
+	Simulator::Schedule( Seconds(stime), &updateCwndValues, nNodes);
+	//    Simulator::Schedule( Seconds(stime+start_tracing_time), &writeCwndToFile, nNodes);
 
     // start tracing Queue Size and Dropped Files
     Simulator::Schedule( Seconds(stime), &TraceDroppedPacket, dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files periodically ( 1 sec. )
     for (auto time = stime+start_tracing_time; time < stop_time; time+=0.1)
     {   
-	  Simulator::Schedule( Seconds(time), &writeCwndToFile, n_nodes);
+	  Simulator::Schedule( Seconds(time), &writeCwndToFile, nNodes);
 	  Simulator::Schedule( Seconds(time), &TraceQueueSizeTc, queueDisc);
 	  Simulator::Schedule( Seconds(time), &TraceQueueSize);
 	  Simulator::Schedule( Seconds(time), &TraceBottleneckTx);
