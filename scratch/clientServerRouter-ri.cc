@@ -26,6 +26,7 @@ Active Queue Management using variable maxSize
 #include "ns3/netanim-module.h"
 
 #define MAX_SOURCES 100;
+#define BETA_VALUE 0.45;
 #define GLOBAL_SYNC_THRESHOLD 0.2;
 
 using namespace ns3;
@@ -40,7 +41,6 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
-
 
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
@@ -273,29 +273,30 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
 	  hasSynchrony = true;
 	}
 
-    NS_LOG_UNCOND("Old and New :"<< oldVal<<" "<<newVal);
+    //NS_LOG_UNCOND("Old and New :"<< oldVal<<" "<<newVal);
     sumWindows += diff;
     if(newval < oldval){
-        //////
         sum_biwi -= (diff - biwi[node]); biwi[node] = diff;
         sumPrevOldVal += (prevWindow[node] - prevOldVal[node]); prevOldVal[node] = prevWindow[node];
         if(sumPrevOldVal){
             double beta = sum_biwi/sumPrevOldVal;
             minB = std::min(minB, beta);
             maxB = std::max(maxB, beta);
-            NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<"       beta:   "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
-            NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
+            //NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<"       beta:   "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
+			uint32_t qth_n = giveQth(prevSumWindows[node]/nNodes, BETA_VALUE);
+			NS_LOG_UNCOND("qth value: "<< qth_n);
+			SetQueueSize(qth_n)
         }
     }
 
     if(hasSynchrony){
-        NS_LOG_UNCOND("qth value In synchrony: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
+	  //NS_LOG_UNCOND("qth value In synchrony: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         hasSynchrony = false;
     }
 
     prevSumWindows[node] = sumWindows;
     prevWindow[node] = newVal;
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
     cwnd[node] = newval/segmentSize;
 	//    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
 }

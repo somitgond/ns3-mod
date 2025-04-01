@@ -1,5 +1,4 @@
 # Author: Somit Gond
-# Date: 24/03/2025
 
 '''
 Program to benchmark threshold based queuing policy against droptail
@@ -9,6 +8,7 @@ Four benchmarks:
 3. throughput: use flow-monitor to collect data => calculate throughput using that 
 4. synchrony: after simulation, calculate syncrony from data
 '''
+
 import numpy as np
 import os
 import xml.etree.ElementTree as ET # to read xml file
@@ -29,11 +29,14 @@ def calculate_throughput(flow_data):
         throughput_data.append({'flowId': flow['flowId'], 'throughput_mbps': throughput_mbps})
 
     return throughput_data
+
 if __name__ == "__main__":
     folder_path = '/home/jack/github/mtp/pythonWork/tcp-dumbbell-regular-tcplinuxreno/'
     # effective delay
+    # propagation delay is rtt and queueing delay is queue at router 1 * link bandwith
     
     # flow completion time
+    # run it for 100 mb and check last enqueued cwnd time
     
     # throughput calculation
     tree = ET.parse('dumbbell-flowmonitor.xml')
