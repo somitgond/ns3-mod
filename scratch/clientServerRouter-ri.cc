@@ -25,9 +25,9 @@ Active Queue Management using variable maxSize
 #include "ns3/node.h"
 #include "ns3/netanim-module.h"
 
-#define MAX_SOURCES 100;
-#define BETA_VALUE 0.45;
-#define GLOBAL_SYNC_THRESHOLD 0.2;
+#define MAX_SOURCES 100
+#define BETA_VALUE 0.45
+#define GLOBAL_SYNC_THRESHOLD 0.2
 
 using namespace ns3;
 
@@ -267,7 +267,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
 	  loss_events[node] = 0;
 	}
 	// get global sync rate if it is greater than a parameter
-	if(give_global_sync() > 0.2){
+	if(give_global_sync() > GLOBAL_SYNC_THRESHOLD){
 	  //NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
 	  // set appropriate qth 
 	  hasSynchrony = true;
