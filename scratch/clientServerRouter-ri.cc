@@ -336,7 +336,7 @@ main(int argc, char *argv[])
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
-    uint32_t bytes_to_send = 100 * 1e6; // 40 MB
+    uint32_t bytes_to_send = 0; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
     std::string queueSize = "1p";
