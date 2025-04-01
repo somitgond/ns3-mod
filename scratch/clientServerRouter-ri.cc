@@ -476,7 +476,7 @@ main(int argc, char *argv[])
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     queueDisc_router = queueDiscs.Get(0);
     ///////-------------------->>>>>>>>>>>>>>>>>>>>>
-    SetQueueSize(100);
+    //SetQueueSize(tc_queueSize);
     //////--------------------->>>>>>>>>>>>>>>>>>>>>
 
     // // tracing queue Size change
