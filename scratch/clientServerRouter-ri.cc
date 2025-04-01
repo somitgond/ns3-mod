@@ -42,6 +42,9 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
 
+// to store RTT of each flow
+Ptr<OutputStreamWrapper> rtts;
+
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
 
@@ -351,6 +354,7 @@ main(int argc, char *argv[])
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
     std::string parametersFileName = "parameters";
+	std::string rttFileName = "RTTs";
     float stop_time = 500;
     float start_time = 0;
     float start_tracing_time = 5;
@@ -421,13 +425,20 @@ main(int argc, char *argv[])
     p2p_router.SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue(QueueSize (queueSize)));
     // p2p_router.DisableFlowControl();
 
-    
+	// write RTT 
+	AsciiTraceHelper rtt_helper;
+
+	rtts = rtt_helper.CreateFileStream(dir + rttFileName+".txt");
+	
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
     for (uint32_t i = 0; i < nNodes; i++)
     {
         double delay = (x->GetValue())/2;
         //std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
+		// write delay
+		*rtts->GetStream() << i << "\t" << delay*4 << std::endl;
+		
         p2p_s[i].SetDeviceAttribute ("DataRate", StringValue(access_bandwidth));
         p2p_s[i].SetChannelAttribute ("Delay", StringValue(delay_str));
         p2p_s[i].SetQueue ("ns3::DropTailQueue<Packet>", "MaxSize", QueueSizeValue (QueueSize (std::to_string(0/nNodes)+"p"))); // p in 1000p stands for packets

@@ -34,6 +34,7 @@ if __name__ == "__main__":
     folder_path = '/home/jack/github/mtp/pythonWork/tcp-dumbbell-regular-tcplinuxreno/'
     # effective delay
     # propagation delay is rtt and queueing delay is queue at router 1 * link bandwith
+    # need to store RTT of each flow in a file. for each time point multiply queue 
     
     # flow completion time
     # run it for 100 mb and check last enqueued cwnd time
