@@ -285,7 +285,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
             //NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<"       beta:   "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
 			uint32_t qth_n = giveQth(prevSumWindows[node]/nNodes, BETA_VALUE);
 			NS_LOG_UNCOND("qth value: "<< qth_n);
-			SetQueueSize(qth_n)
+			SetQueueSize(qth_n);
         }
     }
 
