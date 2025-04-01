@@ -116,10 +116,10 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
 void SetQueueSize(uint32_t qth) {
   QueueSize currentSize = queueDisc_router->GetMaxSize();
   NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
-  if(currentSize.GetValue() == qth)
+  if(currentSize.GetValue() == qth or qth == 0)
 	return;
   std::string qth_str = std::to_string(qth) + "p";
-  QueueSize newSize = QueueSize(qth_str);
+t  QueueSize newSize = QueueSize(qth_str);
   queueDisc_router->SetMaxSize(newSize);
   NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
@@ -339,7 +339,7 @@ main(int argc, char *argv[])
     uint32_t bytes_to_send = 100 * 1e6; // 40 MB
     std::string tcp_type_id = "ns3::TcpLinuxReno";// TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "100p";
+    std::string queueSize = "1p";
     std::string tc_queueSize = "100p";
     std::string RTT = "198ms";   		//round-trip time of each TCP flow
     std::string bottleneck_bandwidth = "100Mbps";  //bandwidth of the bottleneck link
@@ -474,20 +474,10 @@ main(int argc, char *argv[])
     // // two devices
     // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
-    Ptr<QueueDisc> queueDisc_router = queueDiscs.Get(0);
-
-
-
-
-
-
+    queueDisc_router = queueDiscs.Get(0);
     ///////-------------------->>>>>>>>>>>>>>>>>>>>>
     SetQueueSize(100);
     //////--------------------->>>>>>>>>>>>>>>>>>>>>
-
-
-
-
 
     // // tracing queue Size change
     // AsciiTraceHelper ascii;
