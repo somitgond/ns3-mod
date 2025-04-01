@@ -392,7 +392,19 @@ main(int argc, char *argv[])
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p")));
 	// Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue (20*1000));
+    // creating a directory to save results
+    struct stat buffer;    
+    [[maybe_unused]] int retVal;
 
+    if ((stat (dir.c_str (), &buffer)) == 0)
+    {
+      std::string dirToRemove = "rm -rf " + dir;
+      retVal = system (dirToRemove.c_str ());
+      NS_ASSERT_MSG (retVal == 0, "Error in return value");
+    }
+    std::string dirToSave = "mkdir -p " + dir;
+    retVal = system(dirToSave.c_str ());
+    NS_ASSERT_MSG (retVal == 0, "Error in return value");
 
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
@@ -427,7 +439,6 @@ main(int argc, char *argv[])
 
 	// write RTT 
 	AsciiTraceHelper rtt_helper;
-
 	rtts = rtt_helper.CreateFileStream(dir + rttFileName+".txt");
 	
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
@@ -436,6 +447,7 @@ main(int argc, char *argv[])
         double delay = (x->GetValue())/2;
         //std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
+		
 		// write delay
 		*rtts->GetStream() << i << "\t" << delay*4 << std::endl;
 		
@@ -562,21 +574,8 @@ main(int argc, char *argv[])
         stime += gap;        
     }
 
-    // creating a directory to save results
-    struct stat buffer;    
-    [[maybe_unused]] int retVal;
 
-    if ((stat (dir.c_str (), &buffer)) == 0)
-    {
-      std::string dirToRemove = "rm -rf " + dir;
-      retVal = system (dirToRemove.c_str ());
-      NS_ASSERT_MSG (retVal == 0, "Error in return value");
-    }
-    std::string dirToSave = "mkdir -p " + dir;
-    retVal = system(dirToSave.c_str ());
-    NS_ASSERT_MSG (retVal == 0, "Error in return value");
-
-		// write parameters
+	// write parameters
 	AsciiTraceHelper parameters_helper;
 
 	parameters = parameters_helper.CreateFileStream(dir + parametersFileName+".txt");
