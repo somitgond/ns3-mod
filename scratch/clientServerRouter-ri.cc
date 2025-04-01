@@ -119,7 +119,7 @@ void SetQueueSize(uint32_t qth) {
   if(currentSize.GetValue() == qth or qth == 0)
 	return;
   std::string qth_str = std::to_string(qth) + "p";
-t  QueueSize newSize = QueueSize(qth_str);
+  QueueSize newSize = QueueSize(qth_str);
   queueDisc_router->SetMaxSize(newSize);
   NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
