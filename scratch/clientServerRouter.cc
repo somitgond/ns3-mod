@@ -200,51 +200,18 @@ StartTracingTransmitedPacket(){
     Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeCallback(&TxPacket));
 }
 
-double minB = 100.0, maxB = -100.0;
 
 //////////// CALCULATNG BETA /////////////////
-bool hasSynchrony = false;
-std::vector<bool> gotDip;               bool gotAll = false;        int cntDips = 0;
+std::vector<double> betas;
+std::vector<bool> dipStarted;
+std::vector<double> highs;
 
-std::vector<double> prevWindow;
-
-std::vector<double> prevSumWindows;     double sumWindows = 0.0;
-
-std::vector<double> wti2;               double sum_wti2 = 0.0;
-
-std::vector<double> arrWti;             double sum_wti = 0.0;
-
-std::vector<double> wiwti;              double sum_wiwti = 0.0;
-
-std::vector<double> biwiwti;            double sum_biwiwti = 0.0;
-/// ////////////
-std::vector<double> biwi;            double sum_biwi = 0.0;
-std::vector<double> prevOldVal;            double sumPrevOldVal = 0.0;
 void initiateArray(){
-    gotDip          = std::vector<bool>(nNodes+1, false);
-    prevWindow      = std::vector<double>(nNodes+1, 0.0);
-    prevSumWindows  = std::vector<double> (nNodes+1, 0.0);
-    wti2            = std::vector<double>(nNodes+1, 0.0);
-    arrWti          = std::vector<double>(nNodes+1, 0.0);
-    wiwti           = std::vector<double>(nNodes+1, 0.0);
-    biwiwti         = std::vector<double>(nNodes+1, 0.0);
-    biwi         = std::vector<double>(nNodes+1, 0.0);
-    prevOldVal         = std::vector<double>(nNodes+1, 0.0);
+    betas = std::vector<double>(nNodes + 1, 0.5);
+    dipStarted = std::vector<bool>(nNodes + 1, false);
+    highs = std::vector<double>(nNodes + 1, 0);
 }
 
-
-// static void getDipOfHost(int node, double biwi, double wti, double wi){
-//     sum_wti2 += (wti*wti - wti2[node]); wti2[node] = wti*wti;
-//     sum_wti += (wti - arrWti[node]); arrWti[node] = wti;
-//     sum_wiwti += (wi*wti - wiwti[node]); wiwti[node] = wi*wti;
-//     sum_biwiwti += (biwi*wti - biwiwti[node]); biwiwti[node] = biwi*wti;
-
-//     if(!gotDip[node]){
-//         gotDip[node] = true;
-//         cntDips++;
-//     }
-//     if(cntDips == nNodes) gotAll = true;
-// }
 
 ///// getBeta returns the beta_optimal at anytime.
 double getBeta(){
@@ -259,35 +226,16 @@ double getBeta(){
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     
     double oldVal = oldval/segSize, newVal = newval/segSize;
-    double diff = newVal - prevWindow[node];
-	// update loss events
-	if(newval < oldval){
-	  loss_events[node] = 1;
-	} else {
-	  loss_events[node] = 0;
-	}
-	// get global sync rate if it is greater than a parameter
-	if(give_global_sync() > 0.2){
-	  //NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-	  // set appropriate qth 
-	  hasSynchrony = true;
-	}
-
-    NS_LOG_UNCOND("Old and New :"<< oldVal<<" "<<newVal);
-    sumWindows += diff;
-    if(newval < oldval){
-        //////
-        sum_biwi -= (diff - biwi[node]); biwi[node] = diff;
-        sumPrevOldVal += (prevWindow[node] - prevOldVal[node]); prevOldVal[node] = prevWindow[node];
-        if(sumPrevOldVal){
-            double beta = sum_biwi/sumPrevOldVal;
-            minB = std::min(minB, beta);
-            maxB = std::max(maxB, beta);
-            NS_LOG_UNCOND("min and max beta value: "<< minB <<" "<<maxB<<"       beta:   "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
-            NS_LOG_UNCOND("qth value: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
-        }
+    
+    if(oldval > newval){
+        dipStarted[node] = true;
+        highs[node] = oldval;
     }
-
+    if(dipStarted[node] && (oldval < newval)){
+        dipStarted[node] = false;
+        betas[node] = (highs[node] - (double)oldval)/highs[node];
+        NS_LOG_UNCOND("beta " << betas[node] << "node: "<<node);
+    }
     if(hasSynchrony){
         NS_LOG_UNCOND("qth value In synchrony: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
         hasSynchrony = false;
