@@ -121,13 +121,13 @@ void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
 // set new size
 void SetQueueSize(uint32_t qth) {
     QueueSize currentSize = queueDisc_router->GetMaxSize();
-    NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
+    // NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
     if (currentSize.GetValue() == qth or qth == 0)
         return;
     std::string qth_str = std::to_string(qth) + "p";
     QueueSize newSize = QueueSize(qth_str);
     queueDisc_router->SetMaxSize(newSize);
-    NS_LOG_UNCOND("Queue size adjusted to " << newSize);
+    // NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
 
 void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
@@ -313,8 +313,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             // beta:
             // "<<beta<<" w_av "<<prevSumWindows[node]/nNodes);
             uint32_t qth_n = giveQth(prevSumWindows[node] / nNodes, BETA_VALUE);
-            NS_LOG_UNCOND("qth value: " << qth_n);
-            SetQueueSize(qth_n);
+            // NS_LOG_UNCOND("qth value: " << qth_n);
+            // SetQueueSize(qth_n);
         }
     }
 
@@ -370,7 +370,7 @@ int main(int argc, char *argv[]) {
     std::string queue_disc = "ns3::FifoQueueDisc";
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
-    std::string RTT = "98ms"; // round-trip time of each TCP flow
+    std::string RTT = "198ms"; // round-trip time of each TCP flow
     std::string bottleneck_bandwidth =
         "100Mbps"; // bandwidth of the bottleneck link
     std::string bottleneck_delay =
@@ -378,7 +378,6 @@ int main(int argc, char *argv[]) {
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
-    ;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
@@ -399,7 +398,7 @@ int main(int argc, char *argv[]) {
     // //cmd.AddValue ("tcp_type_id", "Flavour of TCP to use", tcp_type_id);
     // cmd.AddValue ("queue_disc", "queue Discipline to use", queue_disc);
     // cmd.AddValue ("queue_size", "Queue size at router", queue_size);
-    // cmd.AddValue ("RTT", "Round Trip Time for a packet", RTT);
+    cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     // cmd.AddValue ("bottleneck_bandwidth", "Bandwidth of the bottleneck link",
     // bottleneck_bandwidth); cmd.AddValue ("bottleneck_delay", "Delay of
     // Bandwidth Link", bottleneck_delay); cmd.AddValue ("access_bandwidth",
@@ -415,6 +414,8 @@ int main(int argc, char *argv[]) {
     // tracing", start_tracing_time); cmd.AddValue ("enable_bot_trace", "Enable
     // Tracing for whole simulation", enable_bot_trace);
     cmd.Parse(argc, argv);
+    NS_LOG_UNCOND("Starting Simulation");
+    NS_LOG_UNCOND("RTT value : " << RTT);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                        StringValue(tcp_type_id));
@@ -463,8 +464,8 @@ int main(int argc, char *argv[]) {
 
     // creating channel
     // Defining the links to be used between nodes
-    double min = double(2 * std::stoi(RTT.substr(0, RTT.length() - 2))) - 10.0;
-    double max = double(2 * std::stoi(RTT.substr(0, RTT.length() - 2))) + 10.0;
+    double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10.0;
+    double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10.0;
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
     x->SetAttribute("Min", DoubleValue(min));
@@ -484,7 +485,7 @@ int main(int argc, char *argv[]) {
 
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
     for (uint32_t i = 0; i < nNodes; i++) {
-        double delay = (x->GetValue()) / 2;
+        double delay = (x->GetValue()) / 4;
         // std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
 
