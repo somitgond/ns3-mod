@@ -70,7 +70,7 @@ def global_sync_value(folder_path, debug=0):
         if f.endswith(".cwnd"):
             if debug == 1:
                 print(f"Reading file: {folder_path+f}")
-            d = np.genfromtxt(folder_path + f, delimiter=8).reshape(-1, 2)
+            d = np.genfromtxt(folder_path + f, delimiter=" ").reshape(-1, 2)
             data.append(d[:, 1])
 
     ## convert array to numpy
