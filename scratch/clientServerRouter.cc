@@ -430,21 +430,11 @@ main(int argc, char *argv[])
     // // two devices
     // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i) NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
-    Ptr<QueueDisc> queueDisc_router = queueDiscs.Get(0);
-
-
-
-
-
+	queueDisc_router = queueDiscs.Get(0);
 
     ///////-------------------->>>>>>>>>>>>>>>>>>>>>
     SetQueueSize(100);
     //////--------------------->>>>>>>>>>>>>>>>>>>>>
-
-
-
-
-
     // // tracing queue Size change
     // AsciiTraceHelper ascii;
     // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get (0))->GetQueue ();
