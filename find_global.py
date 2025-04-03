@@ -170,7 +170,7 @@ if __name__ == "__main__":
                 avg_throughput_calc(folder_path),
                 effective_delay(folder_path),
             ]
-            with open(data_filename, "w", newline="") as csvfile:
+            with open(data_filename, "a", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(data_to_write)
             num += 1
