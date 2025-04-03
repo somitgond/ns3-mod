@@ -203,6 +203,7 @@ StartTracingTransmitedPacket(){
 
 //////////// CALCULATNG BETA /////////////////
 bool needToUpdate = true;
+bool hasSynchrony = false;
 std::vector<double> betas;
 std::vector<bool> dipStarted;
 std::vector<double> highs;
@@ -228,28 +229,41 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     
     double oldVal = (double)oldval/segSize, newVal = (double)newval/segSize;
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
-    // if(node == 10){
-        // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
-        if(!dipStarted[node] && (oldval > newval)){
-            dipStarted[node] = true;
-            // NS_LOG_UNCOND("---Gothigh " << oldVal);
-            highs[node] = oldval;
+
+
+    if(newval < oldval){
+        loss_events[node] = 1;
+    } else {
+        loss_events[node] = 0;
+    }
+    // get global sync rate if it is greater than a parameter
+    if(give_global_sync() > 0.2){
+        //NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+        // set appropriate qth 
+        hasSynchrony = true;
+    }
+
+
+    // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
+    if(!dipStarted[node] && (oldval > newval)){
+        dipStarted[node] = true;
+        // NS_LOG_UNCOND("---Gothigh " << oldVal);
+        highs[node] = oldval;
+    }
+    if(dipStarted[node] && (oldval < newval)){
+        dipStarted[node] = false;
+        betas[node] = (highs[node] - (double)oldval)/highs[node];
+        NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<< highs[node]/segSize<<" "<<oldVal);
+        NS_LOG_UNCOND("beta " << betas[node]);
+        
+        int qth = giveQth(sumWin/nNodes, betas[node]);
+        NS_LOG_UNCOND("wav, qth " <<sumWin/nNodes<<" "<< qth);
+        if(needToUpdate && betas[node] > 0.4 && betas[node] < 0.6 && qth > 0){
+            SetQueueSize(100);
+            needToUpdate = false;
+            NS_LOG_UNCOND("----------------------DONE!!");
         }
-        if(dipStarted[node] && (oldval < newval)){
-            dipStarted[node] = false;
-            betas[node] = (highs[node] - (double)oldval)/highs[node];
-            NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<< highs[node]/segSize<<" "<<oldVal);
-            NS_LOG_UNCOND("beta " << betas[node]);
-            
-            int qth = giveQth(sumWin/nNodes, betas[node]);
-            NS_LOG_UNCOND("wav, qth " <<sumWin/nNodes<<" "<< qth);
-            if(needToUpdate && betas[node] > 0.4 && betas[node] < 0.6 && qth > 0){
-                SetQueueSize(100);
-                needToUpdate = false;
-                NS_LOG_UNCOND("----------------------DONE!!");
-            }
-        }
-    // }
+    }
     
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
