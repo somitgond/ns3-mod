@@ -148,27 +148,53 @@ if __name__ == "__main__":
         RTTs.append(f"{(5*i) + 198}ms")
 
     num = 0
+    # for one RTT, n number of random seeds
+    for rs in random_seeds:
+        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="198ms"'
+
+        # run the command
+        subprocess.run(cmd_to_run, shell=True)
+        time.sleep(2)
+
+        # check that process exited successfully
+        # assert subprocess.CompletedProcess.returncode == 0
+
+        # write data in output file
+        data_to_write = [
+            num,
+            rs,
+            198,
+            global_sync_value(folder_path),
+            avg_throughput_calc(folder_path),
+            effective_delay(folder_path, debug=1),
+        ]
+        with open(data_filename, "a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(data_to_write)
+        num += 1
+
+    # for one random seed and n rtts
+    random_seed = random.choice(random_seeds)
     for rtt in RTTs:
-        for rs in random_seeds:
-            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="{rtt}"'
+        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="{rtt}"'
 
-            # run the command
-            subprocess.run(cmd_to_run, shell=True)
-            time.sleep(2)
+        # run the command
+        subprocess.run(cmd_to_run, shell=True)
+        time.sleep(2)
 
-            # check that process exited successfully
-            # assert subprocess.CompletedProcess.returncode == 0
+        # check that process exited successfully
+        # assert subprocess.CompletedProcess.returncode == 0
 
-            # write data in output file
-            data_to_write = [
-                num,
-                rs,
-                rtt,
-                global_sync_value(folder_path),
-                avg_throughput_calc(folder_path),
-                effective_delay(folder_path, debug=1),
-            ]
-            with open(data_filename, "a", newline="") as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(data_to_write)
-            num += 1
+        # write data in output file
+        data_to_write = [
+            num,
+            random_seed,
+            rtt,
+            global_sync_value(folder_path),
+            avg_throughput_calc(folder_path),
+            effective_delay(folder_path, debug=1),
+        ]
+        with open(data_filename, "a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(data_to_write)
+        num += 1
