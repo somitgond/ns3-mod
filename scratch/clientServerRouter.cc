@@ -202,22 +202,24 @@ StartTracingTransmitedPacket(){
 
 
 //////////// CALCULATNG BETA /////////////////
+bool needToUpdate = true;
+bool hasSynchrony = false;
 std::vector<double> betas;
 std::vector<bool> dipStarted;
 std::vector<double> highs;
+
+std::vector<double> prevWin;
+double sumWin = 0;
+
 
 void initiateArray(){
     betas = std::vector<double>(nNodes + 1, 0.5);
     dipStarted = std::vector<bool>(nNodes + 1, false);
     highs = std::vector<double>(nNodes + 1, 0);
+    prevWin = std::vector<double>(nNodes + 1, 0);
 }
 
 
-///// getBeta returns the beta_optimal at anytime.
-double getBeta(){
-    if(!sum_wti) return -1;
-    return (sum_wti2 - sum_wiwti + sum_biwiwti)/sum_wti;
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -225,24 +227,45 @@ double getBeta(){
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     
-    double oldVal = oldval/segSize, newVal = newval/segSize;
-    
-    if(oldval > newval){
+    double oldVal = (double)oldval/segSize, newVal = (double)newval/segSize;
+    sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
+
+
+    if(newval < oldval){
+        loss_events[node] = 1;
+    } else {
+        loss_events[node] = 0;
+    }
+    // get global sync rate if it is greater than a parameter
+    if(give_global_sync() > 0.2){
+        //NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+        // set appropriate qth 
+        hasSynchrony = true;
+    }
+
+
+    // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
+    if(!dipStarted[node] && (oldval > newval)){
         dipStarted[node] = true;
+        // NS_LOG_UNCOND("---Gothigh " << oldVal);
         highs[node] = oldval;
     }
     if(dipStarted[node] && (oldval < newval)){
         dipStarted[node] = false;
         betas[node] = (highs[node] - (double)oldval)/highs[node];
-        NS_LOG_UNCOND("beta " << betas[node] << "node: "<<node);
+        NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<< highs[node]/segSize<<" "<<oldVal);
+        NS_LOG_UNCOND("beta " << betas[node]);
+        
+        int qth = giveQth(sumWin/nNodes, betas[node]);
+        NS_LOG_UNCOND("wav, qth " <<sumWin/nNodes<<" "<< qth);
+        if(needToUpdate && betas[node] > 0.4 && betas[node] < 0.6 && qth > 0){
+            SetQueueSize(100);
+            needToUpdate = false;
+            NS_LOG_UNCOND("----------------------DONE!!");
+        }
     }
-    if(hasSynchrony){
-        NS_LOG_UNCOND("qth value In synchrony: "<< giveQth(prevSumWindows[node]/nNodes, 0.5));
-        hasSynchrony = false;
-    }
+    
 
-    prevSumWindows[node] = sumWindows;
-    prevWindow[node] = newVal;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     cwnd[node] = newval/segmentSize;
 	//    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () << " " << newval/segmentSize<< std::endl;
@@ -299,7 +322,7 @@ main(int argc, char *argv[])
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
     std::string parametersFileName = "parameters";
     float stop_time = 500;
-    float start_time = 0;
+    float start_time = 200;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
 
