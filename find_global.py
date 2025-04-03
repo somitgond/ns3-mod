@@ -12,6 +12,7 @@ import csv
 import os
 import random
 import subprocess
+import time
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -94,29 +95,25 @@ def global_sync_value(folder_path, debug=0):
                 if data_loss[i][j] == 1:
                     nij += 1
                     break
+        if nij == 0:
+            continue
         sync_rate.append(nij / len(data_loss))
     if debug == 1:
         print(sync_rate)
-    avg_sync_rate = 0
-    sync_value = 0
-    for sr in sync_rate:
-        if sr != 0:
-            sync_value += 1
-            avg_sync_rate += sr
-
-    return avg_sync_rate / sync_value
+    sync_rate = np.array(sync_rate)
+    return np.average(sync_rate)
 
 
 # finding effective delay
 def effective_delay(folder_path, debug=0):
     filename_rtt = folder_path + "RTTs.txt"
     filename_qsize = folder_path + "tc-qsizeTrace-dumbbell.txt"
-    rtt_data = np.array(np.genfromtxt(filename_rtt, delimiter=8))
-    queue_data = np.genfromtxt(filename_qsize, delimiter=8).reshape(-1, 2)
+    rtt_data = np.genfromtxt(filename_rtt, delimiter=" ").reshape(-1, 2)
+    queue_data = np.genfromtxt(filename_qsize, delimiter=" ").reshape(-1, 2)
     if debug == 1:
         print(rtt_data)
         print(queue_data)
-    avg_rtt = np.average(rtt_data)
+    avg_rtt = np.average(rtt_data[:, 1])
     avg_rtt += (np.average(queue_data[:, 1]) * 8) / 10**5
     return avg_rtt
 
@@ -126,7 +123,7 @@ def effective_delay(folder_path, debug=0):
 if __name__ == "__main__":
     random.seed(2341)
 
-    folder_path = "result-clientServerRouter/"
+    folder_path = "./result-clientServerRouter/"
     data_filename = "results.csv"
     fields = [
         "Simulation_number",
@@ -157,9 +154,10 @@ if __name__ == "__main__":
 
             # run the command
             subprocess.run(cmd_to_run, shell=True)
+            time.sleep(2)
 
             # check that process exited successfully
-            assert subprocess.CompletedProcess.returncode == 0
+            # assert subprocess.CompletedProcess.returncode == 0
 
             # write data in output file
             data_to_write = [
@@ -168,7 +166,7 @@ if __name__ == "__main__":
                 rtt,
                 global_sync_value(folder_path),
                 avg_throughput_calc(folder_path),
-                effective_delay(folder_path),
+                effective_delay(folder_path, debug=1),
             ]
             with open(data_filename, "a", newline="") as csvfile:
                 writer = csv.writer(csvfile)

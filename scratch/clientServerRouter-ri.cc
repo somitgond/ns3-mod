@@ -490,7 +490,7 @@ int main(int argc, char *argv[]) {
         std::string delay_str = std::to_string(delay) + "ms";
 
         // write delay
-        *rtts->GetStream() << i << "\t" << delay * 4 << std::endl;
+        *rtts->GetStream() << i << " " << delay * 4 << std::endl;
 
         p2p_s[i].SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
         p2p_s[i].SetChannelAttribute("Delay", StringValue(delay_str));
