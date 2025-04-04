@@ -115,6 +115,7 @@ def effective_delay(folder_path, debug=0):
         print(queue_data)
     avg_rtt = np.average(rtt_data[:, 1])
     avg_rtt += (np.average(queue_data[:, 1]) * 8) / 10**5
+    avg_rtt += 2
     return avg_rtt
 
 
