@@ -209,6 +209,7 @@ std::vector<bool> dipStarted;
 std::vector<double> highs;
 
 std::vector<double> prevWin;
+std::vector<double> dropCounts;
 double sumWin = 0;
 
 
@@ -217,9 +218,18 @@ void initiateArray(){
     dipStarted = std::vector<bool>(nNodes + 1, false);
     highs = std::vector<double>(nNodes + 1, 0);
     prevWin = std::vector<double>(nNodes + 1, 0);
+    dropCounts = std::vector<double>(nNodes + 1, 0);
 }
 
+double getBeta(){
+    double beta = 0, sm = 0;
+    for(int i = 0; i<nNodes; i++){
+        beta += betas[i] * dropCounts[i];
+        sm += dropCounts[i];
+    }
 
+    return beta/sm;
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -233,6 +243,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
 
     if(newval < oldval){
         loss_events[node] = 1;
+        dropCounts[node] += 1;
     } else {
         loss_events[node] = 0;
     }
@@ -252,16 +263,20 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval){
     }
     if(dipStarted[node] && (oldval < newval)){
         dipStarted[node] = false;
-        betas[node] = (highs[node] - (double)oldval)/highs[node];
+        if(((highs[node] - (double)oldval)/highs[node]) > 0.1 && ((highs[node] - (double)oldval)/highs[node]) < 0.9){
+            betas[node] = (highs[node] - (double)oldval)/highs[node];
+        }
         NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<< highs[node]/segSize<<" "<<oldVal);
         NS_LOG_UNCOND("beta " << betas[node]);
+        NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
         
         int qth = giveQth(sumWin/nNodes, betas[node]);
         NS_LOG_UNCOND("wav, qth " <<sumWin/nNodes<<" "<< qth);
         if(needToUpdate && betas[node] > 0.4 && betas[node] < 0.6 && qth > 0){
-            SetQueueSize(100);
-            needToUpdate = false;
+            SetQueueSize(qth);
+            // needToUpdate = false;
             NS_LOG_UNCOND("----------------------DONE!!");
+            NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
         }
     }
     
