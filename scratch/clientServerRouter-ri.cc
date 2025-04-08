@@ -390,29 +390,8 @@ int main(int argc, char *argv[]) {
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
-    // cmd.AddValue ("del_ack_count", "del Ack Count", del_ack_count);
-    // cmd.AddValue ("cleanup_time", "Clean up time before simulation ends",
-    // cleanup_time); cmd.AddValue ("initial_cwnd", "Initial cwnd Size",
-    // initial_cwnd); cmd.AddValue ("bytes_to_send", "Bytes to send using
-    // BulkSend", bytes_to_send);
-    // //cmd.AddValue ("tcp_type_id", "Flavour of TCP to use", tcp_type_id);
-    // cmd.AddValue ("queue_disc", "queue Discipline to use", queue_disc);
-    // cmd.AddValue ("queue_size", "Queue size at router", queue_size);
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
-    // cmd.AddValue ("bottleneck_bandwidth", "Bandwidth of the bottleneck link",
-    // bottleneck_bandwidth); cmd.AddValue ("bottleneck_delay", "Delay of
-    // Bandwidth Link", bottleneck_delay); cmd.AddValue ("access_bandwidth",
-    // "Bandwidth of the branches", access_bandwidth); cmd.AddValue ("root_dir",
-    // "Root Directory of Project", root_dir); cmd.AddValue
-    // ("qsize_trace_filename", "FileName to store qsize trace",
-    // qsize_trace_filename); cmd.AddValue ("dropped_trace_filename", "FileName
-    // to store dropped packets", dropped_trace_filename); cmd.AddValue
-    // ("bottleneck_tx_filename", "FileName to store bottlneck tra",
-    // bottleneck_tx_filename); cmd.AddValue ("stop_time", "Simulation stop
-    // time", stop_time); cmd.AddValue ("start_time", "Simulation Start Time",
-    // start_time); cmd.AddValue ("start_tracing_time", "Time to wait before
-    // tracing", start_tracing_time); cmd.AddValue ("enable_bot_trace", "Enable
-    // Tracing for whole simulation", enable_bot_trace);
+
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
@@ -486,7 +465,7 @@ int main(int argc, char *argv[]) {
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
     for (uint32_t i = 0; i < nNodes; i++) {
         double delay = (x->GetValue()) / 4;
-        // std::cout << delay*2 << std::endl;
+
         std::string delay_str = std::to_string(delay) + "ms";
 
         // write delay
