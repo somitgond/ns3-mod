@@ -134,10 +134,13 @@ def save_folder(src, dst):
     dst_gzip = dst + "/" + src_gzip
 
     # rename the src directory
-    subprocess.run(f"mv {src} {src_new}", shell=True)
+    subprocess.run(f"cp -r {src} {src_new}", shell=True)
 
     # gzip it
     subprocess.run(f"tar -zcvf {src_gzip} {src_new}", shell=True)
+
+    # remove source new directory
+    subprocess.run(f"rm -r {src_new}", shell=True)
 
     # move it
     subprocess.run(f"mv {src_gzip} {dst_gzip}", shell=True)
