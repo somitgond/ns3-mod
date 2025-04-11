@@ -124,6 +124,8 @@ def effective_delay(folder_path, debug=0):
 # saving trace results
 def save_folder(src, dst):
     i = 0
+    if Path(dst).exists() == False:
+        subprocess.run(f"mkdir {dst}", shell=True)
     while Path(f"{dst}/{src}-{i}.gzip").exists():
         i += 1
 
@@ -144,7 +146,9 @@ def save_folder(src, dst):
 if __name__ == "__main__":
     random.seed(2341)
 
-    folder_path = "./result-clientServerRouter/"
+    src_path = "result-clientServerRouter"
+    folder_path = src_path + "/"
+    dst_path = "results"
     data_filename = "results.csv"
     fields = [
         "Simulation_number",
@@ -176,6 +180,7 @@ if __name__ == "__main__":
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
+        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully
@@ -203,6 +208,7 @@ if __name__ == "__main__":
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
+        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully
