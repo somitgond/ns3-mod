@@ -14,6 +14,8 @@ import random
 import subprocess
 import time
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from re import sub
 
 import numpy as np
 
@@ -64,7 +66,6 @@ def global_sync_value(folder_path, debug=0):
     window_size = 25  # 5 second window
 
     # synchrony calculation
-    # os.chdir(folder_path)
     data = []
     for f in os.listdir(folder_path):
         if f.endswith(".cwnd"):
@@ -95,8 +96,6 @@ def global_sync_value(folder_path, debug=0):
                 if data_loss[i][j] == 1:
                     nij += 1
                     break
-        if nij == 0:
-            continue
         sync_rate.append(nij / len(data_loss))
     if debug == 1:
         print(sync_rate)
@@ -121,10 +120,38 @@ def effective_delay(folder_path, debug=0):
 
 # flow completion time
 
+
+# saving trace results
+def save_folder(src, dst):
+    i = 0
+    if Path(dst).exists() == False:
+        subprocess.run(f"mkdir {dst}", shell=True)
+    while Path(f"{dst}/{src}-{i}.gzip").exists():
+        i += 1
+
+    src_new = f"{src}-{i}"
+    src_gzip = f"{src_new}.gzip"
+    dst_gzip = dst + "/" + src_gzip
+
+    # rename the src directory
+    subprocess.run(f"cp -r {src} {src_new}", shell=True)
+
+    # gzip it
+    subprocess.run(f"tar -zcvf {src_gzip} {src_new}", shell=True)
+
+    # remove source new directory
+    subprocess.run(f"rm -r {src_new}", shell=True)
+
+    # move it
+    subprocess.run(f"mv {src_gzip} {dst_gzip}", shell=True)
+
+
 if __name__ == "__main__":
     random.seed(2341)
 
-    folder_path = "./result-clientServerRouter/"
+    src_path = "result-clientServerRouter"
+    folder_path = src_path + "/"
+    dst_path = "results"
     data_filename = "results.csv"
     fields = [
         "Simulation_number",
@@ -151,10 +178,12 @@ if __name__ == "__main__":
     num = 0
     # for one RTT, n number of random seeds
     for rs in random_seeds:
+        print(f"Iteration: {num}")
         cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="198ms"'
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
+        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully
@@ -177,10 +206,12 @@ if __name__ == "__main__":
     # for one random seed and n rtts
     random_seed = random.choice(random_seeds)
     for rtt in RTTs:
+        print(f"Iteration: {num}")
         cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="{rtt}"'
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
+        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully

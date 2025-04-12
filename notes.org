@@ -57,3 +57,4 @@
 * Notes
 	- using data 'tcp-dumbbell-regular-interval-it1'
         - considering data between 200 and 400 seconds
+- find autocorrelation between data, lag of 90 data points
