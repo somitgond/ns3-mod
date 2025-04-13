@@ -48,6 +48,7 @@ Ptr<OutputStreamWrapper> parameters;
 
 std::vector<uint32_t> cwnd(nNodes + 1, 0);
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
+Ptr<OutputStreamWrapper> rtts;
 
 uint64_t queue_size;
 Ptr<OutputStreamWrapper> qSize_stream;
@@ -348,7 +349,6 @@ int main(int argc, char *argv[]) {
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
-    ;
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
