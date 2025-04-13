@@ -276,13 +276,13 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             ((highs[node] - (double)oldval) / highs[node]) < 0.9) {
             betas[node] = (highs[node] - (double)oldval) / highs[node];
         }
-        // NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<< highs[node]/segSize<<" "<<oldVal);
-        // NS_LOG_UNCOND("beta " << betas[node]);
-        // NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
-        
-        int qth = giveQth(sumWin/nNodes, getBeta());
-        NS_LOG_UNCOND("wav, qth " <<sumWin/nNodes<<" "<< qth);
-        if(needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0){
+        // NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<<
+        // highs[node]/segSize<<" "<<oldVal); NS_LOG_UNCOND("beta " <<
+        // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
+
+        int qth = giveQth(sumWin / nNodes, getBeta());
+        NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
+        if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0) {
             SetQueueSize(qth);
             // needToUpdate = false;
             NS_LOG_UNCOND("----------------------DONE!!");
