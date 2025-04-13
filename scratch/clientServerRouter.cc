@@ -41,6 +41,8 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
 
+bool AQM_ENABLED = 0;
+
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
 
@@ -283,14 +285,18 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int qth = giveQth(sumWin / nNodes, getBeta());
         NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
         if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0) {
-            SetQueueSize(qth);
+            if (Simulator::Now().GetSeconds() > 100 and AQM_ENABLED == 0) {
+                SetQueueSize(qth);
+                AQM_ENABLED = 1;
+                NS_LOG_UNCOND("----------------------DONE!!");
+                NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
+            }
             // needToUpdate = false;
-            NS_LOG_UNCOND("----------------------DONE!!");
-            NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
+            // NS_LOG_UNCOND("----------------------DONE!!");
+            // NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     cwnd[node] = newval / segmentSize;
     //    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () <<
     //    " " << newval/segmentSize<< std::endl;
@@ -332,8 +338,8 @@ int main(int argc, char *argv[]) {
     uint32_t bytes_to_send = 0;                    // 0 for unbounded
     std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno
     std::string queue_disc = "ns3::FifoQueueDisc";
-    std::string queueSize = "100p";
-    std::string tc_queueSize = "100p";
+    std::string queueSize = "1p";
+    std::string tc_queueSize = "2083p";
     std::string RTT = "198ms"; // round-trip time of each TCP flow
     std::string bottleneck_bandwidth =
         "100Mbps"; // bandwidth of the bottleneck link
@@ -346,9 +352,11 @@ int main(int argc, char *argv[]) {
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
+    std::string rttFileName = "RTTs";
+
     std::string parametersFileName = "parameters";
     float stop_time = 500;
-    float start_time = 200;
+    float start_time = 0;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
 
@@ -372,6 +380,18 @@ int main(int argc, char *argv[]) {
     // QueueSizeValue (QueueSize (queue_size)));
     Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize",
                        UintegerValue(20 * 1000));
+    // creating a directory to save results
+    struct stat buffer;
+    [[maybe_unused]] int retVal;
+
+    if ((stat(dir.c_str(), &buffer)) == 0) {
+        std::string dirToRemove = "rm -rf " + dir;
+        retVal = system(dirToRemove.c_str());
+        NS_ASSERT_MSG(retVal == 0, "Error in return value");
+    }
+    std::string dirToSave = "mkdir -p " + dir;
+    retVal = system(dirToSave.c_str());
+    NS_ASSERT_MSG(retVal == 0, "Error in return value");
 
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
@@ -388,6 +408,9 @@ int main(int argc, char *argv[]) {
         leftNodes[i] = NodeContainer(nodes.Get(i + 2), nodes.Get(0));
         rightNodes[i] = NodeContainer(nodes.Get(2 + nNodes + i), nodes.Get(1));
     }
+    // write RTT
+    AsciiTraceHelper rtt_helper;
+    rtts = rtt_helper.CreateFileStream(dir + rttFileName + ".txt");
 
     // creating channel
     // Defining the links to be used between nodes
@@ -411,6 +434,9 @@ int main(int argc, char *argv[]) {
         double delay = (x->GetValue()) / 4;
         // std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
+        // write delay
+        *rtts->GetStream() << i << " " << delay * 4 << std::endl;
+
         p2p_s[i].SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
         p2p_s[i].SetChannelAttribute("Delay", StringValue(delay_str));
         p2p_s[i].SetQueue(
@@ -552,19 +578,6 @@ int main(int argc, char *argv[]) {
 
         stime += gap;
     }
-
-    // creating a directory to save results
-    struct stat buffer;
-    [[maybe_unused]] int retVal;
-
-    if ((stat(dir.c_str(), &buffer)) == 0) {
-        std::string dirToRemove = "rm -rf " + dir;
-        retVal = system(dirToRemove.c_str());
-        NS_ASSERT_MSG(retVal == 0, "Error in return value");
-    }
-    std::string dirToSave = "mkdir -p " + dir;
-    retVal = system(dirToSave.c_str());
-    NS_ASSERT_MSG(retVal == 0, "Error in return value");
 
     // write parameters
     AsciiTraceHelper parameters_helper;
