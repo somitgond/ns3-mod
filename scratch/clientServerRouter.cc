@@ -362,7 +362,11 @@ int main(int argc, char *argv[]) {
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
+    cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
+
     cmd.Parse(argc, argv);
+    NS_LOG_UNCOND("Starting Simulation");
+    NS_LOG_UNCOND("RTT value : " << RTT);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                        StringValue(tcp_type_id));
