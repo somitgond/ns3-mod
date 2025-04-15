@@ -20,6 +20,7 @@ Active Queue Management using variable maxSize
 #include "ns3/tcp-header.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/udp-header.h"
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -661,6 +662,29 @@ int main(int argc, char *argv[]) {
     Simulator::Run();
     monitor->SerializeToXmlFile(dir + "dumbbell-flowmonitor.xml", false, true);
     Simulator::Destroy();
+
+    //    // check flow Completion time
+    //    monitor->CheckForLostPackets();
+    //
+    //    Ptr<Ipv4FlowClassifier> classifier =
+    //        DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
+    //    std::map<FlowId, FlowMonitor::FlowStats> stats =
+    //    monitor->GetFlowStats();
+    //
+    //    for (auto &flow : stats) {
+    //        Ipv4FlowClassifier::FiveTuple t =
+    //        classifier->FindFlow(flow.first);
+    //
+    //        double startTime = flow.second.timeFirstTxPacket.GetSeconds();
+    //        double endTime = flow.second.timeLastRxPacket.GetSeconds();
+    //        double fct = endTime - startTime;
+    //
+    //        std::cout << "Flow ID: " << flow.first << " (" << t.sourceAddress
+    //                  << " -> " << t.destinationAddress << ")\n"
+    //                  << "  Flow Completion Time: " << fct << " s\n"
+    //                  << "  Tx Bytes: " << flow.second.txBytes << "\n"
+    //                  << "  Rx Bytes: " << flow.second.rxBytes << "\n\n";
+    //    }
 
     return 0;
 }
