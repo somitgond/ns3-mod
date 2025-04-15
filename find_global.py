@@ -44,35 +44,26 @@ def avg_throughput_calc(
     ## throughput per flow calculated
     throughputs_filename = folder_path + individual_throughput_filename
 
-    if fct:
-        data_to_write = [
-            "Flow number",
-            "Source IP",
-            "Destination IP",
-            "Total Time (s)", 
-            "Data (MB)",
-            "Throughput (MBps)",
-        ]
-    else:
-        data_to_write = [
-            "Flow number",
-            "Source IP",
-            "Destination IP",
-            "Total Time (s)", 
-            "Data (MB)",
-            "Throughput (Mbps)",
-        ]
+    data_to_write = [
+        "Flow number",
+        "Source IP",
+        "Destination IP",
+        "Total Time (s)",
+        "Data (MB)",
+        "Throughput (MBps)",
+    ]
 
     with open(throughputs_filename, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(data_to_write)
 
-    return calculate_throughput(attri, flows_ip,  throughputs_filename, fct, debug)
+    return calculate_throughput(attri, flows_ip, throughputs_filename, fct, debug)
 
 
 def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, debug=0):
-    throughput_data = 0
-    number_of_flows = 0
+    throughput_data = []
+    fct_data = []
+
     for flow in flow_data:
         tx_bytes = int(flow["txBytes"])  # Transmitted bytes
         time_first_tx_ns = float(
@@ -95,27 +86,47 @@ def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, d
         throughput_bps = tx_bytes / total_time_sec
         throughput_mbps = (throughput_bps) / 1e6
 
-        data_sent = (tx_bytes) / (1024* 1024)
+        data_sent = (tx_bytes) / (1024 * 1024)
 
-        flow_id = flow['flowId']
+        flow_id = flow["flowId"]
 
         # write throughput and flow completion time to file
         if fct:
             with open(throughputs_filename, "a", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow([flow_id, flows_ip[flow_id][0], flows_ip[flow_id][1], total_time_sec_fct, data_sent, throughput_mbps])
+                writer.writerow(
+                    [
+                        flow_id,
+                        flows_ip[flow_id][0],
+                        flows_ip[flow_id][1],
+                        total_time_sec_fct,
+                        data_sent,
+                        throughput_mbps,
+                    ]
+                )
         else:
             with open(throughputs_filename, "a", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow([flow_id, flows_ip[flow_id][0], flows_ip[flow_id][1], total_time_sec, data_sent, throughput_mbps])
+                writer.writerow(
+                    [
+                        flow_id,
+                        flows_ip[flow_id][0],
+                        flows_ip[flow_id][1],
+                        total_time_sec,
+                        data_sent,
+                        throughput_mbps,
+                    ]
+                )
 
         if debug == 1:
-            print(f"Flow: {number_of_flows} throughput: {throughput_mbps}mbps")
+            print(f"Flow: {flow_id} throughput: {throughput_mbps}mbps")
 
-        throughput_data += throughput_mbps
-        number_of_flows += 1
+        throughput_data.append(throughput_mbps)
+        fct_data.append(total_time_sec_fct)
 
-    return throughput_data / number_of_flows
+    throughput_data = np.array(throughput_data)
+    fct_data = np.array(fct_data)
+    return np.mean(throughput_data), np.mean(fct_data)
 
 
 def global_sync_value(folder_path, debug=0):
@@ -227,10 +238,11 @@ if __name__ == "__main__":
         "Random Seed",
         "RTT",
         "Global Sync Value",
-        "Average Throughput",
-        "Effective Delay",
-        "Jitter in RTT",
-        "Qeueing Delay",
+        "Average Throughput(MBps)",
+        "Flow Completion Time(s)",
+        "Effective Delay(ms)",
+        "Jitter in RTT(ms)",
+        "Qeueing Delay(ms)",
     ]
     with open(data_filename, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
@@ -244,7 +256,7 @@ if __name__ == "__main__":
 
     RTTs = []
     for i in range(number_of_simulations):
-        RTTs.append(f"{(5*i) + 198}ms")
+        RTTs.append((5 * i) + 198)
 
     num = 0
     # for one RTT, n number of random seeds
@@ -261,12 +273,16 @@ if __name__ == "__main__":
 
         # write data in output file
         eff_rtt, jitter, queue_delay = effective_delay(folder_path)
+        throughput_avg, fct_avg = avg_throughput_calc(
+            folder_path, individual_throughput_filename
+        )
         data_to_write = [
             num,
             rs,
-            198,
+            200,
             global_sync_value(folder_path),
-            avg_throughput_calc(folder_path, individual_throughput_filename),
+            throughput_avg,
+            fct_avg,
             eff_rtt,
             jitter,
             queue_delay,
@@ -281,7 +297,8 @@ if __name__ == "__main__":
     random_seed = random.choice(random_seeds)
     for rtt in RTTs:
         print(f"Iteration: {num}")
-        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter.cc -- --RTT="{rtt}"'
+        temp_rtt = f"{rtt}ms"
+        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter.cc -- --RTT="{temp_rtt}"'
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
@@ -292,12 +309,17 @@ if __name__ == "__main__":
 
         # write data in output file
         eff_rtt, jitter, queue_delay = effective_delay(folder_path)
+
+        throughput_avg, fct_avg = avg_throughput_calc(
+            folder_path, individual_throughput_filename
+        )
         data_to_write = [
             num,
             random_seed,
-            rtt,
+            rtt + 2,
             global_sync_value(folder_path),
-            avg_throughput_calc(folder_path, individual_throughput_filename),
+            throughput_avg,
+            fct_avg,
             eff_rtt,
             jitter,
             queue_delay,
