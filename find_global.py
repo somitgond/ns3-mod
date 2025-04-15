@@ -135,7 +135,7 @@ def effective_delay(folder_path, debug=0):
     avg_rtt += 2
 
     # find jitter
-    combined = 2 + rtt_data[:, 1] + (queue_data[:, 1] * 8) / 10**5
+    combined = 2 + np.mean(rtt_data[:, 1]) + (queue_data[:, 1] * 8) / 10**5
     jitter_avg_rtt = np.var(combined)
 
     # queueing delay
