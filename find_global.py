@@ -20,7 +20,9 @@ from re import sub
 import numpy as np
 
 
-def avg_throughput_calc(folder_path, individual_throughput_filename, debug=0):
+def avg_throughput_calc(
+    folder_path, individual_throughput_filename, fct=False, debug=0
+):
     # os.chdir(folder_path)
     filename = folder_path + "dumbbell-flowmonitor.xml"
     # throughput calculation
@@ -31,17 +33,44 @@ def avg_throughput_calc(folder_path, individual_throughput_filename, debug=0):
     for flows in flowstats:
         attri.append(flows.attrib)
 
+    flows_ip = {}
+    for ips in root[1]:
+        temp = ips.attrib
+        flows_ip[temp["flowId"]] = [
+            temp["sourceAddress"],
+            temp["destinationAddress"],
+        ]
+
     ## throughput per flow calculated
     throughputs_filename = folder_path + individual_throughput_filename
-    data_to_write = ["Flow number", "Throughput (Mbps)"]
+
+    if fct:
+        data_to_write = [
+            "Flow number",
+            "Source IP",
+            "Destination IP",
+            "Total Time (s)", 
+            "Data (MB)",
+            "Throughput (MBps)",
+        ]
+    else:
+        data_to_write = [
+            "Flow number",
+            "Source IP",
+            "Destination IP",
+            "Total Time (s)", 
+            "Data (MB)",
+            "Throughput (Mbps)",
+        ]
+
     with open(throughputs_filename, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(data_to_write)
 
-    return calculate_throughput(attri, throughputs_filename, debug)
+    return calculate_throughput(attri, flows_ip,  throughputs_filename, fct, debug)
 
 
-def calculate_throughput(flow_data, throughputs_filename, debug=0):
+def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, debug=0):
     throughput_data = 0
     number_of_flows = 0
     for flow in flow_data:
@@ -53,20 +82,36 @@ def calculate_throughput(flow_data, throughputs_filename, debug=0):
             flow["timeLastTxPacket"].replace("+", "").replace("ns", "")
         )  # Last transmission time (ns)
 
+        time_last_rx_ns = float(
+            flow["timeLastRxPacket"].replace("+", "").replace("ns", "")
+        )  # Last Recieved time (ns)
+
         # Calculate total time in seconds
         total_time_sec = (time_last_tx_ns - time_first_tx_ns) / 1e9
 
+        total_time_sec_fct = (time_last_rx_ns - time_first_tx_ns) / 1e9
+
         # Calculate throughput in Mbps
         throughput_bps = tx_bytes / total_time_sec
-        throughput_mbps = (throughput_bps * 8) / 1e6
+        throughput_mbps = (throughput_bps) / 1e6
 
-        # write throughput to file
-        with open(throughputs_filename, "a", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow([number_of_flows, throughput_mbps])
+        data_sent = (tx_bytes) / (1024* 1024)
+
+        flow_id = flow['flowId']
+
+        # write throughput and flow completion time to file
+        if fct:
+            with open(throughputs_filename, "a", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([flow_id, flows_ip[flow_id][0], flows_ip[flow_id][1], total_time_sec_fct, data_sent, throughput_mbps])
+        else:
+            with open(throughputs_filename, "a", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([flow_id, flows_ip[flow_id][0], flows_ip[flow_id][1], total_time_sec, data_sent, throughput_mbps])
 
         if debug == 1:
             print(f"Flow: {number_of_flows} throughput: {throughput_mbps}mbps")
+
         throughput_data += throughput_mbps
         number_of_flows += 1
 
@@ -142,9 +187,6 @@ def effective_delay(folder_path, debug=0):
     queueing_delay = (np.mean(queue_data[:, 1]) * 8) / 10**5
 
     return avg_rtt, jitter_avg_rtt, queueing_delay
-
-
-# flow completion time
 
 
 # saving trace results
