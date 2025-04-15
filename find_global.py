@@ -184,11 +184,11 @@ if __name__ == "__main__":
         "Simulation_number",
         "Random Seed",
         "RTT",
-        "Jitter in RTT",
-        "Qeueing Delay",
         "Global Sync Value",
         "Average Throughput",
         "Effective Delay",
+        "Jitter in RTT",
+        "Qeueing Delay",
     ]
     with open(data_filename, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
@@ -218,13 +218,16 @@ if __name__ == "__main__":
         # assert subprocess.CompletedProcess.returncode == 0
 
         # write data in output file
+        eff_rtt, jitter, queue_delay = effective_delay(folder_path)
         data_to_write = [
             num,
             rs,
             198,
             global_sync_value(folder_path),
             avg_throughput_calc(folder_path, individual_throughput_filename),
-            effective_delay(folder_path),
+            eff_rtt,
+            jitter,
+            queue_delay,
         ]
         save_folder(src_path, dst_path)
         with open(data_filename, "a", newline="") as csvfile:
@@ -246,13 +249,16 @@ if __name__ == "__main__":
         # assert subprocess.CompletedProcess.returncode == 0
 
         # write data in output file
+        eff_rtt, jitter, queue_delay = effective_delay(folder_path)
         data_to_write = [
             num,
             random_seed,
             rtt,
             global_sync_value(folder_path),
             avg_throughput_calc(folder_path, individual_throughput_filename),
-            effective_delay(folder_path),
+            eff_rtt,
+            jitter,
+            queue_delay,
         ]
         save_folder(src_path, dst_path)
         with open(data_filename, "a", newline="") as csvfile:
