@@ -20,7 +20,7 @@ from re import sub
 import numpy as np
 
 
-def avg_throughput_calc(folder_path, debug=0):
+def avg_throughput_calc(folder_path, individual_throughput_filename, debug=0):
     # os.chdir(folder_path)
     filename = folder_path + "dumbbell-flowmonitor.xml"
     # throughput calculation
@@ -32,10 +32,16 @@ def avg_throughput_calc(folder_path, debug=0):
         attri.append(flows.attrib)
 
     ## throughput per flow calculated
-    return calculate_throughput(attri, debug)
+    throughputs_filename = folder_path + individual_throughput_filename
+    data_to_write = ["Flow number", "Throughput (Mbps)"]
+    with open(throughputs_filename, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(data_to_write)
+
+    return calculate_throughput(attri, throughputs_filename, debug)
 
 
-def calculate_throughput(flow_data, debug=0):
+def calculate_throughput(flow_data, throughputs_filename, debug=0):
     throughput_data = 0
     number_of_flows = 0
     for flow in flow_data:
@@ -53,6 +59,12 @@ def calculate_throughput(flow_data, debug=0):
         # Calculate throughput in Mbps
         throughput_bps = tx_bytes / total_time_sec
         throughput_mbps = (throughput_bps * 8) / 1e6
+
+        # write throughput to file
+        with open(throughputs_filename, "a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([number_of_flows, throughput_mbps])
+
         if debug == 1:
             print(f"Flow: {number_of_flows} throughput: {throughput_mbps}mbps")
         throughput_data += throughput_mbps
@@ -100,22 +112,36 @@ def global_sync_value(folder_path, debug=0):
     if debug == 1:
         print(sync_rate)
     sync_rate = np.array(sync_rate)
-    return np.average(sync_rate)
+    return np.mean(sync_rate)
 
 
 # finding effective delay
 def effective_delay(folder_path, debug=0):
     filename_rtt = folder_path + "RTTs.txt"
     filename_qsize = folder_path + "tc-qsizeTrace-dumbbell.txt"
+
+    # reading data
     rtt_data = np.genfromtxt(filename_rtt, delimiter=" ").reshape(-1, 2)
     queue_data = np.genfromtxt(filename_qsize, delimiter=" ").reshape(-1, 2)
+
+    # if dubugging is on print data values
     if debug == 1:
         print(rtt_data)
         print(queue_data)
-    avg_rtt = np.average(rtt_data[:, 1])
-    avg_rtt += (np.average(queue_data[:, 1]) * 8) / 10**5
+
+    # average effective delay
+    avg_rtt = np.mean(rtt_data[:, 1])
+    avg_rtt += (np.mean(queue_data[:, 1]) * 8) / 10**5
     avg_rtt += 2
-    return avg_rtt
+
+    # find jitter
+    combined = 2 + rtt_data[:, 1] + (queue_data[:, 1] * 8) / 10**5
+    jitter_avg_rtt = np.var(combined)
+
+    # queueing delay
+    queueing_delay = (np.mean(queue_data[:, 1]) * 8) / 10**5
+
+    return avg_rtt, jitter_avg_rtt, queueing_delay
 
 
 # flow completion time
@@ -153,10 +179,13 @@ if __name__ == "__main__":
     folder_path = src_path + "/"
     dst_path = "results"
     data_filename = "results.csv"
+    individual_throughput_filename = "throughputs.csv"
     fields = [
         "Simulation_number",
         "Random Seed",
         "RTT",
+        "Jitter in RTT",
+        "Qeueing Delay",
         "Global Sync Value",
         "Average Throughput",
         "Effective Delay",
@@ -179,11 +208,10 @@ if __name__ == "__main__":
     # for one RTT, n number of random seeds
     for rs in random_seeds:
         print(f"Iteration: {num}")
-        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="198ms"'
+        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/clientServerRouter.cc -- --RTT="198ms"'
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
-        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully
@@ -195,9 +223,10 @@ if __name__ == "__main__":
             rs,
             198,
             global_sync_value(folder_path),
-            avg_throughput_calc(folder_path),
-            effective_delay(folder_path, debug=1),
+            avg_throughput_calc(folder_path, individual_throughput_filename),
+            effective_delay(folder_path),
         ]
+        save_folder(src_path, dst_path)
         with open(data_filename, "a", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(data_to_write)
@@ -207,11 +236,10 @@ if __name__ == "__main__":
     random_seed = random.choice(random_seeds)
     for rtt in RTTs:
         print(f"Iteration: {num}")
-        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter-ri.cc -- --RTT="{rtt}"'
+        cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/clientServerRouter.cc -- --RTT="{rtt}"'
 
         # run the command
         subprocess.run(cmd_to_run, shell=True)
-        save_folder(src_path, dst_path)
         time.sleep(2)
 
         # check that process exited successfully
@@ -223,9 +251,10 @@ if __name__ == "__main__":
             random_seed,
             rtt,
             global_sync_value(folder_path),
-            avg_throughput_calc(folder_path),
-            effective_delay(folder_path, debug=1),
+            avg_throughput_calc(folder_path, individual_throughput_filename),
+            effective_delay(folder_path),
         ]
+        save_folder(src_path, dst_path)
         with open(data_filename, "a", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(data_to_write)
