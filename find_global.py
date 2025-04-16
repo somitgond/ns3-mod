@@ -49,8 +49,8 @@ def avg_throughput_calc(
         "Source IP",
         "Destination IP",
         "Total Time (s)",
-        "Data (MB)",
-        "Throughput (MBps)",
+        "Data (Mb)",
+        "Throughput (Mbps)",
     ]
 
     with open(throughputs_filename, "w", newline="") as csvfile:
@@ -63,6 +63,7 @@ def avg_throughput_calc(
 def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, debug=0):
     throughput_data = []
     fct_data = []
+    trasmitted_data = []
 
     for flow in flow_data:
         tx_bytes = int(flow["txBytes"])  # Transmitted bytes
@@ -84,9 +85,9 @@ def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, d
 
         # Calculate throughput in Mbps
         throughput_bps = tx_bytes / total_time_sec
-        throughput_mbps = (throughput_bps) / 1e6
+        throughput_mbps = (throughput_bps * 8) / (1024 * 1024)
 
-        data_sent = (tx_bytes) / (1024 * 1024)
+        data_sent = (tx_bytes * 8) / (1024 * 1024)
 
         flow_id = flow["flowId"]
 
@@ -123,10 +124,12 @@ def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, d
 
         throughput_data.append(throughput_mbps)
         fct_data.append(total_time_sec_fct)
+        trasmitted_data.append(data_sent)
 
     throughput_data = np.array(throughput_data)
     fct_data = np.array(fct_data)
-    return np.mean(throughput_data), np.mean(fct_data)
+    trasmitted_data = np.array(trasmitted_data)
+    return np.mean(throughput_data), np.mean(fct_data), np.mean(trasmitted_data)
 
 
 def global_sync_value(folder_path, debug=0):
@@ -241,7 +244,8 @@ if __name__ == "__main__":
         "Random Seed",
         "RTT",
         "Global Sync Value",
-        "Average Throughput(MBps)",
+        "Average Throughput(Mbps)",
+        "Averate Data Sent(Mb)",
         "Flow Completion Time(s)",
         "Effective Delay(ms)",
         "Jitter in RTT(ms)",
@@ -276,7 +280,7 @@ if __name__ == "__main__":
 
         # write data in output file
         eff_rtt, jitter, queue_delay = effective_delay(folder_path)
-        throughput_avg, fct_avg = avg_throughput_calc(
+        throughput_avg, fct_avg, data_avg = avg_throughput_calc(
             folder_path, individual_throughput_filename
         )
         data_to_write = [
@@ -286,6 +290,7 @@ if __name__ == "__main__":
             global_sync_value(folder_path),
             throughput_avg,
             fct_avg,
+            data_avg,
             eff_rtt,
             jitter,
             queue_delay,
@@ -313,7 +318,7 @@ if __name__ == "__main__":
         # write data in output file
         eff_rtt, jitter, queue_delay = effective_delay(folder_path)
 
-        throughput_avg, fct_avg = avg_throughput_calc(
+        throughput_avg, fct_avg, data_avg = avg_throughput_calc(
             folder_path, individual_throughput_filename
         )
         data_to_write = [
@@ -323,6 +328,7 @@ if __name__ == "__main__":
             global_sync_value(folder_path),
             throughput_avg,
             fct_avg,
+            data_avg,
             eff_rtt,
             jitter,
             queue_delay,
