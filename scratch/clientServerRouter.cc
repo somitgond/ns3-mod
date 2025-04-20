@@ -20,11 +20,14 @@ Active Queue Management using variable maxSize
 #include "ns3/tcp-header.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/udp-header.h"
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #define MAX_SOURCES 100;
 #define GLOBAL_SYNC_THRESHOLD 0.2;
@@ -63,6 +66,71 @@ Ptr<OutputStreamWrapper> dropped_stream;
 
 // queue disc in router 1
 Ptr<QueueDisc> queueDisc_router = CreateObject<FifoQueueDisc>();
+
+// find zero crossings in autocorrelation in queue data
+uint32_t Q_WINDOW = 50;
+uint32_t ZC_THRE = 5;
+std::vector<double> qSizeData(Q_WINDOW);
+uint32_t numOfObs = 0;
+std::vector<double> zerocrossings_data;
+Ptr<OutputStreamWrapper> zc_stream;
+
+// Compute mean
+double computeMean(const std::vector<double> &x) {
+    return std::accumulate(x.begin(), x.end(), 0.0) / x.size();
+}
+
+// Subtract mean
+std::vector<double> meanCentered(const std::vector<double> &x, double mean) {
+    std::vector<double> centered(x.size());
+    for (size_t i = 0; i < x.size(); ++i) {
+        centered[i] = x[i] - mean;
+    }
+    return centered;
+}
+
+// Full cross-correlation of a signal with itself
+std::vector<double> fullAutocorrelation(const std::vector<double> &x) {
+    int n = x.size();
+    double mean = computeMean(x);
+    std::vector<double> x_centered = meanCentered(x, mean);
+
+    int size_full = 2 * n - 1;
+    std::vector<double> result(size_full, 0.0);
+
+    // Cross-correlation at all lags: from -n+1 to n-1
+    for (int lag = -n + 1; lag < n; ++lag) {
+        double sum = 0.0;
+        for (int i = 0; i < n; ++i) {
+            int j = i + lag;
+            if (j >= 0 && j < n) {
+                sum += x_centered[i] * x_centered[j];
+            }
+        }
+        result[lag + n - 1] = sum;
+    }
+
+    // Normalize by zero-lag value (center of full correlation)
+    double zero_lag = result[n - 1];
+    for (int i = n - 1; i < size_full; ++i) {
+        result[i] /= zero_lag;
+    }
+
+    // Return only non-negative lags
+    return std::vector<double>(result.begin() + n - 1, result.end());
+}
+
+// Count zero crossings
+int countZeroCrossings(const std::vector<double> &signal) {
+    int count = 0;
+    for (size_t i = 0; i < signal.size() - 1; ++i) {
+        if ((signal[i] > 0 && signal[i + 1] < 0) ||
+            (signal[i] < 0 && signal[i + 1] > 0)) {
+            ++count;
+        }
+    }
+    return count;
+}
 
 /////////////////////////// calculating global sync matrix
 
@@ -142,6 +210,16 @@ void TraceQueueSizeTc(Ptr<QueueDisc> queueDisc) {
     *tc_qSize_stream->GetStream()
         << Simulator::Now().GetSeconds() << " "
         << queueDisc->GetCurrentSize().GetValue() << std::endl;
+
+    // check zero crossings
+    if ((numOfObs != 0) && (numOfObs % Q_WINDOW == 0)) {
+        std::vector<double> autocorr = fullAutocorrelation(qSizeData);
+        auto zc_val = countZeroCrossings(autocorr);
+        zerocrossings_data.push_back(zc_val);
+        *zc_stream->GetStream()
+            << Simulator::Now().GetSeconds() << " " << zc_val << std::endl;
+    }
+    qSizeData[numOfObs % Q_WINDOW] = queueDisc->GetCurrentSize().GetValue() + 1;
 }
 
 static void plotQsizeChange(uint32_t oldQSize, uint32_t newQSize) {
@@ -285,10 +363,23 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
 
         int qth = giveQth(sumWin / nNodes, getBeta());
-        NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
-        if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0) {
-            if (Simulator::Now().GetSeconds() > 100 and AQM_ENABLED == 0) {
+        // NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
+
+        // zero crossings data is greater than 3
+        int temp_len = zerocrossings_data.size();
+
+        if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0 &&
+            temp_len > 3) {
+            auto ta = zerocrossings_data[temp_len - 1];
+            auto tb = zerocrossings_data[temp_len - 2];
+            auto tc = zerocrossings_data[temp_len - 3];
+
+            if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
+                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0)) {
                 SetQueueSize(qth);
+
+                *zc_stream->GetStream()
+                    << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
@@ -350,6 +441,7 @@ int main(int argc, char *argv[]) {
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
+    std::string zc_trace_filename = "zeroCrossingTrace-dumbbell";
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
     std::string tc_qsize_trace_filename = "tc-qsizeTrace-dumbbell";
@@ -397,6 +489,9 @@ int main(int argc, char *argv[]) {
     std::string dirToSave = "mkdir -p " + dir;
     retVal = system(dirToSave.c_str());
     NS_ASSERT_MSG(retVal == 0, "Error in return value");
+
+    AsciiTraceHelper ascii_zc;
+    zc_stream = ascii_zc.CreateFileStream(dir + zc_trace_filename + ".txt");
 
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
