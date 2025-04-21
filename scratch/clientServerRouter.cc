@@ -367,7 +367,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
 
-        if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0 &&
+        if (needToUpdate && getBeta() > 0.1 && getBeta() < 0.9 && qth > 0 &&
             temp_len > 3) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
@@ -383,9 +383,6 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
             }
-            // needToUpdate = false;
-            // NS_LOG_UNCOND("----------------------DONE!!");
-            // NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
         }
     }
 
