@@ -329,22 +329,22 @@ double getBeta() {
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 
-    double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
-    sumWin += (oldVal - prevWin[node]);
-    prevWin[node] = oldVal;
+    // double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
+    // sumWin += (oldVal - prevWin[node]);
+    // prevWin[node] = oldVal;
 
-    if (newval < oldval) {
-        loss_events[node] = 1;
-        dropCounts[node] += 1;
-    } else {
-        loss_events[node] = 0;
-    }
-    // get global sync rate if it is greater than a parameter
-    if (give_global_sync() > 0.2) {
-        // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-        //  set appropriate qth
-        hasSynchrony = true;
-    }
+    // if (newval < oldval) {
+    //     loss_events[node] = 1;
+    //     dropCounts[node] += 1;
+    // } else {
+    //     loss_events[node] = 0;
+    // }
+    // // get global sync rate if it is greater than a parameter
+    // if (give_global_sync() > 0.2) {
+    //     // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+    //     //  set appropriate qth
+    //     hasSynchrony = true;
+    // }
 
     // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
     if (!dipStarted[node] && (oldval > newval)) {
@@ -368,7 +368,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
 
-        if (needToUpdate && getBeta() > 0.4 && getBeta() < 0.6 && qth > 0 &&
+        if (needToUpdate && getBeta() > 0.1 && getBeta() < 0.9 && qth > 0 &&
             temp_len > 3) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
@@ -384,9 +384,6 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
             }
-            // needToUpdate = false;
-            // NS_LOG_UNCOND("----------------------DONE!!");
-            // NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
         }
     }
 
