@@ -328,22 +328,22 @@ double getBeta() {
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 
-    double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
-    sumWin += (oldVal - prevWin[node]);
-    prevWin[node] = oldVal;
+    // double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
+    // sumWin += (oldVal - prevWin[node]);
+    // prevWin[node] = oldVal;
 
-    if (newval < oldval) {
-        loss_events[node] = 1;
-        dropCounts[node] += 1;
-    } else {
-        loss_events[node] = 0;
-    }
-    // get global sync rate if it is greater than a parameter
-    if (give_global_sync() > 0.2) {
-        // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-        //  set appropriate qth
-        hasSynchrony = true;
-    }
+    // if (newval < oldval) {
+    //     loss_events[node] = 1;
+    //     dropCounts[node] += 1;
+    // } else {
+    //     loss_events[node] = 0;
+    // }
+    // // get global sync rate if it is greater than a parameter
+    // if (give_global_sync() > 0.2) {
+    //     // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
+    //     //  set appropriate qth
+    //     hasSynchrony = true;
+    // }
 
     // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
     if (!dipStarted[node] && (oldval > newval)) {
