@@ -219,6 +219,7 @@ void TraceQueueSizeTc(Ptr<QueueDisc> queueDisc) {
             << Simulator::Now().GetSeconds() << " " << zc_val << std::endl;
     }
     qSizeData[numOfObs % Q_WINDOW] = queueDisc->GetCurrentSize().GetValue() + 1;
+    numOfObs++;
 }
 
 static void plotQsizeChange(uint32_t oldQSize, uint32_t newQSize) {
