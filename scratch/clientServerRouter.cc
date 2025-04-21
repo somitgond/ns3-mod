@@ -121,11 +121,10 @@ std::vector<double> fullAutocorrelation(const std::vector<double> &x) {
 }
 
 // Count zero crossings
-int countZeroCrossings(const std::vector<double> &signal) {
+int countZeroCrossings(const std::vector<double> &x) {
     int count = 0;
-    for (size_t i = 0; i < signal.size() - 1; ++i) {
-        if ((signal[i] > 0 && signal[i + 1] < 0) ||
-            (signal[i] < 0 && signal[i + 1] > 0)) {
+    for (size_t i = 0; i < x.size() - 1; ++i) {
+        if ((x[i] > 0 && x[i + 1] < 0) || (x[i] < 0 && x[i + 1] > 0)) {
             ++count;
         }
     }
