@@ -328,8 +328,8 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
-    // double oldVal = (double)oldval / segSize, newVal = (double)newval /
-    // segSize; sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
+    double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
+    sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
         loss_events[node] = 1;
