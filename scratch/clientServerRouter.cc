@@ -328,11 +328,14 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
-    double oldVal = (double)oldval / segSize, newVal = (double)newval / segSize;
-    sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
+    // double oldVal = (double)oldval / segSize, newVal = (double)newval /
+    // segSize; sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
+        loss_events[node] = 1;
         dropCounts[node] += 1;
+    } else {
+        loss_events[node] = 0;
     }
     // // get global sync rate if it is greater than a parameter
     // if (give_global_sync() > 0.2) {
@@ -363,17 +366,16 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
-        // NS_LOG_UNCOND("beta: " << t_gp << " qth: " << qth);
+        // NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " beta: " << t_gp << "
+        // qth: " << qth);
 
         if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
-            // NS_LOG_UNCOND("2st ");
 
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0)) {
-                // NS_LOG_UNCOND("3st ");
                 SetQueueSize(qth);
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
