@@ -299,6 +299,7 @@ static void StartTracingTransmitedPacket() {
 bool needToUpdate = true;
 bool hasSynchrony = false;
 std::vector<double> betas;
+std::vector<double> countBeta;
 std::vector<bool> dipStarted;
 std::vector<double> highs;
 
@@ -308,6 +309,7 @@ double sumWin = 0;
 
 void initiateArray() {
     betas = std::vector<double>(nNodes + 1, 0.5);
+    countBeta = std::vector<double>(nNodes + 1, 0);
     dipStarted = std::vector<bool>(nNodes + 1, false);
     highs = std::vector<double>(nNodes + 1, 0);
     prevWin = std::vector<double>(nNodes + 1, 0);
@@ -332,11 +334,12 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
-        loss_events[node] = 1;
+        // loss_events[node] = 1;
         dropCounts[node] += 1;
-    } else {
-        loss_events[node] = 0;
     }
+    // else {
+    //     loss_events[node] = 0;
+    // }
     // // get global sync rate if it is greater than a parameter
     // if (give_global_sync() > 0.2) {
     //     // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
@@ -350,14 +353,22 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // NS_LOG_UNCOND("---Gothigh " << oldVal);
         highs[node] = oldval;
     }
-    if (dipStarted[node] && (oldval < newval)) {
+    if (dipStarted[node] && (oldval < newval) &&
+        ((highs[node] - (double)oldval) / highs[node]) > 0.1 &&
+        ((highs[node] - (double)oldval) / highs[node]) < 0.9) {
+
         dipStarted[node] = false;
-        if (((highs[node] - (double)oldval) / highs[node]) > 0.1 &&
-            ((highs[node] - (double)oldval) / highs[node]) < 0.9) {
-            betas[node] = (highs[node] - (double)oldval) / highs[node];
+        double newBeta = (highs[node] - (double)oldval) / highs[node];
+        betas[node] = (betas[node] * countBeta[node]) + newBeta;
+        countBeta[node] += 1;
+        betas[node] = betas[node]/countBeta[node];
+        
+        if(node == 24){
+        NS_LOG_UNCOND(node<<"---BETA->>"<<betas[node]<<" "<<countBeta[node]);
+        NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<<
+        highs[node]/segSize<<" "<<oldVal);
         }
-        // NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<<
-        // highs[node]/segSize<<" "<<oldVal); NS_LOG_UNCOND("beta " <<
+        // NS_LOG_UNCOND("beta " <<
         // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
 
         int qth = giveQth(sumWin / nNodes, getBeta());
