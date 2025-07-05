@@ -156,23 +156,19 @@ double give_global_sync() {
 
 //////////////// get qth ///////////////
 
-int giveQth(double w_av, double beta) {
+int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
            tao = 0.5;
-    double val = log(pi / 2);
 
-    // std::cout<<val<<std::endl;
+    double val = pi/2;
 
-    int qth = 0;
-    double diff = 100000;
-    for (int i = 1; i < 2048; i++) {
-        double estimate =
-            log(i) + i * (log(w_av / (c * tao))) + log(w_av * beta);
-        if (fabs(val - estimate) < diff && estimate <= val) {
-            diff = fabs(val - estimate);
-            qth = i;
-        }
+    int qth = 10;
+    double f = qth*beta*w_av*pow(w_av/(c*tao), qth);
+
+    while(f > val && qth < B){
+        qth += 1;
+        f = qth*beta*w_av*pow(w_av/(c*tao), qth);
     }
 
     return qth;
@@ -380,7 +376,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // NS_LOG_UNCOND("beta " <<
         // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
 
-        int qth = giveQth(sumWin / nNodes, getBeta());
+        int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
         // NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
 
         // zero crossings data is greater than 3
