@@ -367,7 +367,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // NS_LOG_UNCOND("beta " <<
         // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
 
-        int qth = giveQth(sumWin / nNodes, getBeta());
+        int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
         // NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
 
         // zero crossings data is greater than 3
