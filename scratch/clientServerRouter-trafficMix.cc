@@ -147,7 +147,7 @@ std::vector<uint32_t> loss_events(nNodes, 0);
 
 double give_global_sync() {
     int rate = 0;
-    for (int i = 0; i < nNodes; i++)
+    for (uint32_t i = 0; i < nNodes; i++)
         if (loss_events[i] == 1)
             rate++;
 
@@ -323,7 +323,7 @@ void initiateArray() {
 
 double getBeta() {
     double beta = 0, sm = 0;
-    for (int i = 0; i < nNodes; i++) {
+    for (uint32_t i = 0; i < nNodes; i++) {
         beta += betas[i] * dropCounts[i];
         sm += dropCounts[i];
     }
@@ -411,7 +411,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 static void updateCwndValues(uint32_t nNodes) {
     for (uint32_t i = 0; i < nNodes; i++) {
         // [TODO] switch to manual congestion window tracing
-        if((i+2) >= n_tcp_flows+2){
+        if((i) >= n_tcp_flows and i < (n_tcp_flows+n_udp_flows)){
             continue;
         }
         std::string path = "/NodeList/" + std::to_string(i + 2) +
@@ -468,6 +468,7 @@ int main(int argc, char *argv[]) {
     float start_time = 0;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
+    bool verbose = 1;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
@@ -478,7 +479,23 @@ int main(int argc, char *argv[]) {
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
+    if(verbose){
+        LogComponentEnableAll(LOG_PREFIX_TIME);
+        LogComponentEnableAll(LOG_LEVEL_INFO);
 
+        // // Enable logging for BulkSendApplication
+        // LogComponentEnable("BulkSendApplication", LOG_LEVEL_INFO);
+
+        // // Enable logging for PacketSink (used as TCP sink)
+        // LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
+
+        // // Optionally, enable lower-level TCP logging
+        // LogComponentEnable("TcpL4Protocol", LOG_LEVEL_INFO);
+        // LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
+
+        // LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+        // LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+    }
     Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                        StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue
@@ -616,24 +633,6 @@ int main(int argc, char *argv[]) {
         queueDisc_router = queueDiscs.Get(0);
     }
 
-    ///////-------------------->>>>>>>>>>>>>>>>>>>>>
-    // SetQueueSize(100);
-    //////--------------------->>>>>>>>>>>>>>>>>>>>>
-    // // tracing queue Size change
-    // AsciiTraceHelper ascii;
-    // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get
-    // (0))->GetQueue (); Ptr<OutputStreamWrapper> streamBytesInQueue =
-    // ascii.CreateFileStream ( "result-cs-bytesInQueue.txt");
-    // queue->TraceConnectWithoutContext ("BytesInQueue",MakeBoundCallback
-    // (&BytesInQueueTrace, streamBytesInQueue));
-
-    // Schedule periodic queue size adjustments
-    // Time adjustmentInterval = Seconds(10.0);
-    // Simulator::Schedule(adjustmentInterval, &PeriodicQueueAdjustment,
-    // queueDisc, adjustmentInterval); Simulator::Schedule(
-    // Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc,
-    // adjustmentInterval);
-
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
     ipv4.SetBase("172.16.1.0", "255.255.255.0");
@@ -676,13 +675,11 @@ int main(int argc, char *argv[]) {
 
     double stime = start_time;
     ////// tcp
-    // Attack sink to all nodes
+    // sink to all nodes
     PacketSinkHelper packetSinkHelper_tcp(
         "ns3::TcpSocketFactory",
         InetSocketAddress(Ipv4Address::GetAny(), port));
 
-    // Installing BulkSend on each node on left
-    // install tcp flows
     // Configuring the application at each source node.
     for (uint32_t i = 0; i < n_tcp_flows; i++) {
         // install node sink
@@ -765,30 +762,25 @@ int main(int argc, char *argv[]) {
     unirv->SetAttribute("Min", DoubleValue(min_burst_time));
     unirv->SetAttribute("Max", DoubleValue(max_burst_time));
 
-    // they should start and stop at random interval
     for (uint32_t i = (n_tcp_flows + n_udp_flows); i < nNodes; i++) {
-        BulkSendHelper tmp_source(
-            "ns3::TcpSocketFactory",
-            InetSocketAddress(rIp[i].GetAddress(0), port));
-
-        // Set the amount of data to send in bytes.  Zero is unlimited.
-        tmp_source.SetAttribute("MaxBytes", UintegerValue(0));
-        sourceApps[i] = tmp_source.Install(nodes.Get(2 + i));
-
-        // change start and stop time for bursty traffic
-        // schedule the application start and end time for the whole simulation duration
         double burst_start_time = stime;
-        double burst_end_time = burst_start_time+5;
-        // regular traffic for 5 seconds and wait for 5 seconds
-        // irregular time for run and irregular wait -> exponential rv
-        while(burst_end_time < stop_time){
-            sourceApps[i].Start(Seconds(burst_start_time));
-            sourceApps[i].Stop(Seconds(burst_end_time));
-            burst_start_time = burst_end_time + unirv->GetValue();
-            burst_end_time  = burst_start_time + unirv->GetValue();
-        }
-        double gap = expRandomVariable->GetValue();
+        double burst_end_time = burst_start_time + 5;
 
+        while (burst_end_time < stop_time) {
+            BulkSendHelper tmp_source(
+                "ns3::TcpSocketFactory",
+                InetSocketAddress(rIp[i].GetAddress(0), port));
+
+            tmp_source.SetAttribute("MaxBytes", UintegerValue(0));
+            ApplicationContainer app = tmp_source.Install(nodes.Get(2 + i));
+            app.Start(Seconds(burst_start_time));
+            app.Stop(Seconds(burst_end_time));
+
+            burst_start_time = burst_end_time + unirv->GetValue();
+            burst_end_time = burst_start_time + unirv->GetValue();
+        }
+
+        double gap = expRandomVariable->GetValue();
         stime += gap;
     }
 
@@ -875,29 +867,6 @@ int main(int argc, char *argv[]) {
     Simulator::Run();
     monitor->SerializeToXmlFile(dir + "dumbbell-flowmonitor.xml", false, true);
     Simulator::Destroy();
-
-    //    // check flow Completion time
-    //    monitor->CheckForLostPackets();
-    //
-    //    Ptr<Ipv4FlowClassifier> classifier =
-    //        DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
-    //    std::map<FlowId, FlowMonitor::FlowStats> stats =
-    //    monitor->GetFlowStats();
-    //
-    //    for (auto &flow : stats) {
-    //        Ipv4FlowClassifier::FiveTuple t =
-    //        classifier->FindFlow(flow.first);
-    //
-    //        double startTime = flow.second.timeFirstTxPacket.GetSeconds();
-    //        double endTime = flow.second.timeLastRxPacket.GetSeconds();
-    //        double fct = endTime - startTime;
-    //
-    //        std::cout << "Flow ID: " << flow.first << " (" << t.sourceAddress
-    //                  << " -> " << t.destinationAddress << ")\n"
-    //                  << "  Flow Completion Time: " << fct << " s\n"
-    //                  << "  Tx Bytes: " << flow.second.txBytes << "\n"
-    //                  << "  Rx Bytes: " << flow.second.rxBytes << "\n\n";
-    //    }
 
     return 0;
 }
