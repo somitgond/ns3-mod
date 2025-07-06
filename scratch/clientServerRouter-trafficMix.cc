@@ -480,16 +480,16 @@ int main(int argc, char *argv[]) {
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
     if(verbose){
-        LogComponentEnableAll(LOG_PREFIX_TIME);
-        LogComponentEnableAll(LOG_LEVEL_INFO);
+        // LogComponentEnableAll(LOG_PREFIX_TIME);
+        // LogComponentEnableAll(LOG_LEVEL_INFO);
 
-        // // Enable logging for BulkSendApplication
+        // Enable logging for BulkSendApplication
         // LogComponentEnable("BulkSendApplication", LOG_LEVEL_INFO);
 
-        // // Enable logging for PacketSink (used as TCP sink)
-        // LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
+        // Enable logging for PacketSink (used as TCP sink)
+        LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
 
-        // // Optionally, enable lower-level TCP logging
+        // Optionally, enable lower-level TCP logging
         // LogComponentEnable("TcpL4Protocol", LOG_LEVEL_INFO);
         // LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
 
@@ -777,7 +777,8 @@ int main(int argc, char *argv[]) {
             app.Stop(Seconds(burst_end_time));
 
             burst_start_time = burst_end_time + unirv->GetValue();
-            burst_end_time = burst_start_time + unirv->GetValue();
+            burst_end_time = burst_start_time + unirv->GetValue(); 
+            // [TODO] exponential rv, it should be small
         }
 
         double gap = expRandomVariable->GetValue();
