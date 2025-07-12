@@ -392,7 +392,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
-                SetQueueSize(qth);
+                // SetQueueSize(qth);
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
@@ -446,7 +446,7 @@ int main(int argc, char *argv[]) {
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
     uint32_t bytes_to_send = 0;                    // 0 for unbounded
-    std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno
+    std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno,
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
     std::string RTT = "198ms"; // round-trip time of each TCP flow
@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
         // LogComponentEnable("BulkSendApplication", LOG_LEVEL_INFO);
 
         // Enable logging for PacketSink (used as TCP sink)
-        LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
+        // LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
 
         // Optionally, enable lower-level TCP logging
         // LogComponentEnable("TcpL4Protocol", LOG_LEVEL_INFO);
@@ -756,7 +756,7 @@ int main(int argc, char *argv[]) {
 
     // short lived flows
     // burst time modelling as uniform rv
-    double min_burst_time = 0.2;
+    double min_burst_time = 0.1;
     double max_burst_time = 10.0;
     Ptr<UniformRandomVariable> unirv = CreateObject<UniformRandomVariable>();
     unirv->SetAttribute("Min", DoubleValue(min_burst_time));
@@ -776,7 +776,7 @@ int main(int argc, char *argv[]) {
             app.Start(Seconds(burst_start_time));
             app.Stop(Seconds(burst_end_time));
 
-            burst_start_time = burst_end_time + unirv->GetValue();
+            burst_start_time = burst_end_time + expRandomVariable->GetValue();
             burst_end_time = burst_start_time + unirv->GetValue(); 
             // [TODO] exponential rv, it should be small
         }
@@ -784,7 +784,6 @@ int main(int argc, char *argv[]) {
         double gap = expRandomVariable->GetValue();
         stime += gap;
     }
-
 
 
     ///////////////////////////////////////////////////////
@@ -852,6 +851,10 @@ int main(int argc, char *argv[]) {
         Simulator::Schedule(Seconds(time), &TraceBottleneckTx);
         Simulator::Schedule(Seconds(time), &TraceDroppedPkts);
     }
+    // collect pcap traces
+    // p2p_s[0].EnablePcap("client-node0", leftND[0].Get(0), true);
+    // p2p_s[43].EnablePcap("client-node43", leftND[43].Get(0), true);
+    // p2p_s[56].EnablePcap("client-node58", leftND[56].Get(0), true);
 
     if (enable_bot_trace == 1) {
         AsciiTraceHelper bottleneck_ascii;
