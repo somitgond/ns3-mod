@@ -84,7 +84,11 @@ def calculate_throughput(flow_data, flows_ip, throughputs_filename, fct=False, d
         total_time_sec_fct = (time_last_rx_ns - time_first_tx_ns) / 1e9
 
         # Calculate throughput in Mbps
-        throughput_bps = tx_bytes / total_time_sec
+        if(total_time_sec != 0):
+            throughput_bps = tx_bytes / total_time_sec
+        else:
+            throughput_bps = 0
+
         throughput_mbps = (throughput_bps * 8) / (1024 * 1024)
 
         data_sent = (tx_bytes * 8) / (1024 * 1024)
