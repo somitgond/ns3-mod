@@ -57,15 +57,13 @@ if __name__ == "__main__":
         RTTs.append((5 * i) + 198)
 
     # required queue disc
-    # queue_discs = ["ns3::FifoQueueDisc", "ns3::CoDelQueueDisc"]
-    queue_discs = [ "ns3::CoDelQueueDisc","ns3::FifoQueueDisc"]
+    queue_discs = ["ns3::FifoQueueDisc", "ns3::CoDelQueueDisc"]
 
     # total data to transfer
-    tot_bytes = 100 * 1000000
-    # tot_bytes = 0 # 0 means infinte data
+    tot_bytes = 0 # 0 means infinte data
+    # tot_bytes = 100 * 1000000
 
     file_to_run = "clientServerRouter.cc"
-
 
     for qd in queue_discs:
         # for one RTT, n number of random seeds
