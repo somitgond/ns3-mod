@@ -167,21 +167,7 @@ int giveQth(double w_av, double beta, int B) {
 
 //////////////////////////////////////////////
 
-void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
-    QueueSize currentSize = queueDisc->GetMaxSize();
-    NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
-    NS_LOG_UNCOND("Queue CurrentSize "
-                  << queueDisc->GetCurrentSize().GetValue());
-    // if (queueDisc->GetCurrentSize().GetValue() > threshold) {
-    QueueSize newSize =
-        QueueSize(currentSize.GetUnit(), currentSize.GetValue() + increment);
-    queueDisc->SetMaxSize(newSize);
-    threshold = (currentSize.GetValue() + increment) / 2;
-    NS_LOG_UNCOND("Queue size adjusted to " << newSize);
-    // }
-}
-
-// set new size
+// set new Queue size
 void SetQueueSize(uint32_t qth) {
     QueueSize currentSize = queueDisc_router->GetMaxSize();
     NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
@@ -193,12 +179,6 @@ void SetQueueSize(uint32_t qth) {
     NS_LOG_UNCOND("Queue size adjusted to " << newSize);
 }
 
-void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
-    AdjustQueueSize(queueDisc);
-    // NS_LOG_UNCOND("Queue size adjusted");
-    Simulator::Schedule(interval, &PeriodicQueueAdjustment, queueDisc,
-                        interval);
-}
 
 void TraceQueueSizeTc(Ptr<QueueDisc> queueDisc) {
     // Trace Queue Size in Traffic Control Layer
@@ -224,9 +204,6 @@ static void plotQsizeChange(uint32_t oldQSize, uint32_t newQSize) {
 }
 
 static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p) {
-    // std::cout << "Packet Dropped (finally!)" << std::endl;
-    //*stream->GetStream () << Simulator::Now().GetSeconds() << "\tRxDrop" <<
-    // std::endl;
     droppedPackets++;
 }
 
@@ -278,10 +255,6 @@ static void StartTracingQueueSize() {
         "/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/"
         "PacketsInQueue",
         MakeCallback(&plotQsizeChange));
-
-    // Trace Queue size in trafficcontrol Layer
-    // Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/PacketsInQueue",
-    // MakeCallback(&plotQsizeChange));
 }
 
 static void StartTracingTransmitedPacket() {
@@ -333,15 +306,6 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // loss_events[node] = 1;
         dropCounts[node] += 1;
     }
-    // else {
-    //     loss_events[node] = 0;
-    // }
-    // // get global sync rate if it is greater than a parameter
-    // if (give_global_sync() > 0.2) {
-    //     // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-    //     //  set appropriate qth
-    //     hasSynchrony = true;
-    // }
 
     // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
     if (!dipStarted[node] && (oldval > newval)) {
@@ -359,22 +323,12 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         countBeta[node] += 1;
         betas[node] = betas[node]/countBeta[node];
         
-        if(node == 24){
-        NS_LOG_UNCOND(node<<"---BETA->>"<<betas[node]<<" "<<countBeta[node]);
-        NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<<
-        highs[node]/segSize<<" "<<oldVal);
-        }
-        // NS_LOG_UNCOND("beta " <<
-        // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
 
         int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
-        // NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
 
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
-        // NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " beta: " << t_gp << "
-        // qth: " << qth);
 
         if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
@@ -589,34 +543,10 @@ int main(int argc, char *argv[]) {
     TrafficControlHelper tch;
     tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize",
                          QueueSizeValue(QueueSize(tc_queueSize)));
-    // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "MaxSize",
-    // QueueSizeValue (QueueSize (queue_size)), "AdaptationInterval",
-    // StringValue("1s"),
-    //                     "AdaptationThreshold", UintegerValue(20));
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
-    // // two devices
-    // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i)
-    // NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     queueDisc_router = queueDiscs.Get(0);
 
-    ///////-------------------->>>>>>>>>>>>>>>>>>>>>
-    // SetQueueSize(100);
-    //////--------------------->>>>>>>>>>>>>>>>>>>>>
-    // // tracing queue Size change
-    // AsciiTraceHelper ascii;
-    // Ptr<Queue<Packet> > queue = StaticCast<PointToPointNetDevice> (r1r2ND.Get
-    // (0))->GetQueue (); Ptr<OutputStreamWrapper> streamBytesInQueue =
-    // ascii.CreateFileStream ( "result-cs-bytesInQueue.txt");
-    // queue->TraceConnectWithoutContext ("BytesInQueue",MakeBoundCallback
-    // (&BytesInQueueTrace, streamBytesInQueue));
-
-    // Schedule periodic queue size adjustments
-    // Time adjustmentInterval = Seconds(10.0);
-    // Simulator::Schedule(adjustmentInterval, &PeriodicQueueAdjustment,
-    // queueDisc, adjustmentInterval); Simulator::Schedule(
-    // Seconds(start_time+1), &PeriodicQueueAdjustment, queueDisc,
-    // adjustmentInterval);
 
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
@@ -760,29 +690,6 @@ int main(int argc, char *argv[]) {
     Simulator::Run();
     monitor->SerializeToXmlFile(dir + "dumbbell-flowmonitor.xml", false, true);
     Simulator::Destroy();
-
-    //    // check flow Completion time
-    //    monitor->CheckForLostPackets();
-    //
-    //    Ptr<Ipv4FlowClassifier> classifier =
-    //        DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
-    //    std::map<FlowId, FlowMonitor::FlowStats> stats =
-    //    monitor->GetFlowStats();
-    //
-    //    for (auto &flow : stats) {
-    //        Ipv4FlowClassifier::FiveTuple t =
-    //        classifier->FindFlow(flow.first);
-    //
-    //        double startTime = flow.second.timeFirstTxPacket.GetSeconds();
-    //        double endTime = flow.second.timeLastRxPacket.GetSeconds();
-    //        double fct = endTime - startTime;
-    //
-    //        std::cout << "Flow ID: " << flow.first << " (" << t.sourceAddress
-    //                  << " -> " << t.destinationAddress << ")\n"
-    //                  << "  Flow Completion Time: " << fct << " s\n"
-    //                  << "  Tx Bytes: " << flow.second.txBytes << "\n"
-    //                  << "  Rx Bytes: " << flow.second.rxBytes << "\n\n";
-    //    }
 
     return 0;
 }

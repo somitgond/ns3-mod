@@ -140,20 +140,6 @@ int countZeroCrossings(const std::vector<double> &x) {
     return count;
 }
 
-/////////////////////////// calculating global sync matrix
-
-// single vector storing loss events
-std::vector<uint32_t> loss_events(nNodes, 0);
-
-double give_global_sync() {
-    int rate = 0;
-    for (uint32_t i = 0; i < nNodes; i++)
-        if (loss_events[i] == 1)
-            rate++;
-
-    return (double)rate / nNodes;
-}
-
 //////////////// get qth ///////////////
 
 int giveQth(double w_av, double beta, int B) {
@@ -174,23 +160,7 @@ int giveQth(double w_av, double beta, int B) {
     return qth;
 }
 
-//////////////////////////////////////////////
-
-void AdjustQueueSize(Ptr<QueueDisc> queueDisc) {
-    QueueSize currentSize = queueDisc->GetMaxSize();
-    NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
-    NS_LOG_UNCOND("Queue CurrentSize "
-                  << queueDisc->GetCurrentSize().GetValue());
-    // if (queueDisc->GetCurrentSize().GetValue() > threshold) {
-    QueueSize newSize =
-        QueueSize(currentSize.GetUnit(), currentSize.GetValue() + increment);
-    queueDisc->SetMaxSize(newSize);
-    threshold = (currentSize.GetValue() + increment) / 2;
-    NS_LOG_UNCOND("Queue size adjusted to " << newSize);
-    // }
-}
-
-// set new size
+// set new Queue size
 void SetQueueSize(uint32_t qth) {
     QueueSize currentSize = queueDisc_router->GetMaxSize();
     NS_LOG_UNCOND("Queue MaxsizeSize " << currentSize.GetValue());
@@ -200,13 +170,6 @@ void SetQueueSize(uint32_t qth) {
     QueueSize newSize = QueueSize(qth_str);
     queueDisc_router->SetMaxSize(newSize);
     NS_LOG_UNCOND("Queue size adjusted to " << newSize);
-}
-
-void PeriodicQueueAdjustment(Ptr<QueueDisc> queueDisc, Time interval) {
-    AdjustQueueSize(queueDisc);
-    // NS_LOG_UNCOND("Queue size adjusted");
-    Simulator::Schedule(interval, &PeriodicQueueAdjustment, queueDisc,
-                        interval);
 }
 
 void TraceQueueSizeTc(Ptr<QueueDisc> queueDisc) {
@@ -287,10 +250,6 @@ static void StartTracingQueueSize() {
         "/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/"
         "PacketsInQueue",
         MakeCallback(&plotQsizeChange));
-
-    // Trace Queue size in trafficcontrol Layer
-    // Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/TxQueue/PacketsInQueue",
-    // MakeCallback(&plotQsizeChange));
 }
 
 static void StartTracingTransmitedPacket() {
@@ -339,18 +298,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
-        // loss_events[node] = 1;
         dropCounts[node] += 1;
     }
-    // else {
-    //     loss_events[node] = 0;
-    // }
-    // // get global sync rate if it is greater than a parameter
-    // if (give_global_sync() > 0.2) {
-    //     // NS_LOG_UNCOND("global sync rate: "<<give_global_sync());
-    //     //  set appropriate qth
-    //     hasSynchrony = true;
-    // }
 
     // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
     if (!dipStarted[node] && (oldval > newval)) {
@@ -368,22 +317,11 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         countBeta[node] += 1;
         betas[node] = betas[node]/countBeta[node];
         
-        if(node == 24){
-        NS_LOG_UNCOND(node<<"---BETA->>"<<betas[node]<<" "<<countBeta[node]);
-        NS_LOG_UNCOND("---node-high-Low "<<node<<" : "<<
-        highs[node]/segSize<<" "<<oldVal);
-        }
-        // NS_LOG_UNCOND("beta " <<
-        // betas[node]); NS_LOG_UNCOND("--------BETA---------!!"<<getBeta());
-
         int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
-        // NS_LOG_UNCOND("wav, qth " << sumWin / nNodes << " " << qth);
 
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
-        // NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " beta: " << t_gp << "
-        // qth: " << qth);
 
         if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
@@ -479,23 +417,8 @@ int main(int argc, char *argv[]) {
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
-    if(verbose){
-        // LogComponentEnableAll(LOG_PREFIX_TIME);
-        // LogComponentEnableAll(LOG_LEVEL_INFO);
+    
 
-        // Enable logging for BulkSendApplication
-        // LogComponentEnable("BulkSendApplication", LOG_LEVEL_INFO);
-
-        // Enable logging for PacketSink (used as TCP sink)
-        // LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
-
-        // Optionally, enable lower-level TCP logging
-        // LogComponentEnable("TcpL4Protocol", LOG_LEVEL_INFO);
-        // LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
-
-        // LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
-        // LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
-    }
     Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                        StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue
@@ -620,14 +543,7 @@ int main(int argc, char *argv[]) {
     TrafficControlHelper tch;
     tch.SetRootQueueDisc(queue_disc, "MaxSize",
                          QueueSizeValue(QueueSize(tc_queueSize)));
-    // tch.SetRootQueueDisc("ns3::AdaptiveFifoQueueDisc", "MaxSize",
-    // QueueSizeValue (QueueSize (queue_size)), "AdaptationInterval",
-    // StringValue("1s"),
-    //                     "AdaptationThreshold", UintegerValue(20));
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
-    // // two devices
-    // // for(auto i = queueDiscs.Begin(); i != queueDiscs.End(); ++i)
-    // NS_LOG_UNCOND("queueDiscs "<<*i);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     if(queue_disc == "ns3::FifoQueueDisc"){
         queueDisc_router = queueDiscs.Get(0);
