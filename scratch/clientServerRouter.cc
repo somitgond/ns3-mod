@@ -44,6 +44,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
+std::string queue_disc = "ns3::FifoQueueDisc";
 
 bool AQM_ENABLED = 0;
 
@@ -129,20 +130,6 @@ int countZeroCrossings(const std::vector<double> &x) {
         }
     }
     return count;
-}
-
-/////////////////////////// calculating global sync matrix
-
-// single vector storing loss events
-std::vector<uint32_t> loss_events(nNodes, 0);
-
-double give_global_sync() {
-    int rate = 0;
-    for (int i = 0; i < nNodes; i++)
-        if (loss_events[i] == 1)
-            rate++;
-
-    return (double)rate / nNodes;
 }
 
 //////////////// get qth ///////////////
@@ -322,7 +309,6 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         betas[node] = (betas[node] * countBeta[node]) + newBeta;
         countBeta[node] += 1;
         betas[node] = betas[node]/countBeta[node];
-        
 
         int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
 
@@ -336,8 +322,10 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             auto tc = zerocrossings_data[temp_len - 3];
 
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
-                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0)) {
+                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
+                *parameters->GetStream() << "AQM triggered with qth: " <<qth 
+                    << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
@@ -387,7 +375,6 @@ int main(int argc, char *argv[]) {
     uint32_t initial_cwnd = 10;
     uint32_t bytes_to_send = 0;                    // 0 for unbounded
     std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno
-    std::string queue_disc = "ns3::FifoQueueDisc";
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
     std::string RTT = "198ms"; // round-trip time of each TCP flow
@@ -413,27 +400,33 @@ int main(int argc, char *argv[]) {
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
+    cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
+    cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
 
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
+    NS_LOG_UNCOND("Queue disc : " << queue_disc);
+    NS_LOG_UNCOND("total bytes : " << bytes_to_send);
 
-    Config::SetDefault("ns3::TcpL4Protocol::SocketType",
-                       StringValue(tcp_type_id));
-    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue
-    // (4194304)); Config::SetDefault ("ns3::TcpSocket::RcvBufSize",
-    // UintegerValue (6291456));
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd",
-                       UintegerValue(initial_cwnd));
-    Config::SetDefault("ns3::TcpSocket::DelAckCount",
-                       UintegerValue(del_ack_count));
-    Config::SetDefault("ns3::TcpSocket::SegmentSize",
-                       UintegerValue(segmentSize));
-    // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue
-    // (QueueSize ("1p"))); Config::SetDefault (queue_disc + "::MaxSize",
-    // QueueSizeValue (QueueSize (queue_size)));
-    Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize",
-                       UintegerValue(20 * 1000));
+    Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
+    Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 
+    Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (6291456));
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(initial_cwnd));
+    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(del_ack_count));
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(segmentSize));
+    // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p"))); 
+
+    // set traffic control queue size according to queue disc
+    if(queue_disc == "ns3::CoDelQueueDisc"){
+        tc_queueSize = "2084p";
+    } else {
+        tc_queueSize = "2083p";
+    }
+
+    Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
+    Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
+
     // creating a directory to save results
     struct stat buffer;
     [[maybe_unused]] int retVal;
@@ -489,7 +482,6 @@ int main(int argc, char *argv[]) {
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
     for (uint32_t i = 0; i < nNodes; i++) {
         double delay = (x->GetValue()) / 4;
-        // std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
         // write delay
         *rtts->GetStream() << i << " " << delay * 4 << std::endl;
@@ -498,16 +490,14 @@ int main(int argc, char *argv[]) {
         p2p_s[i].SetChannelAttribute("Delay", StringValue(delay_str));
         p2p_s[i].SetQueue(
             "ns3::DropTailQueue<Packet>", "MaxSize",
-            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +
-                                     "p"))); // p in 1000p stands for packets
+            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +"p"))); // p in 1000p stands for packets
         p2p_s[i].DisableFlowControl();
 
         p2p_d[i].SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
         p2p_d[i].SetChannelAttribute("Delay", StringValue(delay_str));
         p2p_d[i].SetQueue(
             "ns3::DropTailQueue<Packet>", "MaxSize",
-            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +
-                                     "p"))); // p in 1000p stands for packets
+            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +"p"))); // p in 1000p stands for packets
         p2p_d[i].DisableFlowControl();
     }
 
@@ -523,7 +513,6 @@ int main(int argc, char *argv[]) {
     InternetStackHelper stack;
     stack.InstallAll(); // install internet stack on all nodes
 
-    /////////////////////////////////////////////////////
     /////////////// Traffic Controller //////////////////
     // Remove any existing queue disc that might be installed
     for (NetDeviceContainer::Iterator i = r1r2ND.Begin(); i != r1r2ND.End();
@@ -541,7 +530,7 @@ int main(int argc, char *argv[]) {
         }
     }
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc("ns3::FifoQueueDisc", "MaxSize",
+    tch.SetRootQueueDisc(queue_disc, "MaxSize",
                          QueueSizeValue(QueueSize(tc_queueSize)));
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);

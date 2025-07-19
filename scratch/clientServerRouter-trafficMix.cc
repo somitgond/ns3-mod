@@ -44,6 +44,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
+std::string queue_disc = "ns3::FifoQueueDisc";
 
 bool AQM_ENABLED = 0;
 
@@ -81,8 +82,6 @@ std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
 Ptr<OutputStreamWrapper> zc_stream;
-std::string queue_disc = "ns3::FifoQueueDisc";
-
 
 // Compute mean
 double computeMean(const std::vector<double> &x) {
@@ -330,7 +329,9 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
-                // SetQueueSize(qth);
+                SetQueueSize(qth);
+                *parameters->GetStream() << "AQM triggered with qth: " <<qth 
+                    << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
@@ -406,34 +407,37 @@ int main(int argc, char *argv[]) {
     float start_time = 0;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
-    bool verbose = 1;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue discipline at router", queue_disc);
+    cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
 
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
-    
+    NS_LOG_UNCOND("total bytes : " << bytes_to_send);
 
-    Config::SetDefault("ns3::TcpL4Protocol::SocketType",
-                       StringValue(tcp_type_id));
-    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue
-    // (4194304)); Config::SetDefault ("ns3::TcpSocket::RcvBufSize",
-    // UintegerValue (6291456));
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd",
-                       UintegerValue(initial_cwnd));
-    Config::SetDefault("ns3::TcpSocket::DelAckCount",
-                       UintegerValue(del_ack_count));
-    Config::SetDefault("ns3::TcpSocket::SegmentSize",
-                       UintegerValue(segmentSize));
+    Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
+    Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 
+    Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (6291456));
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(initial_cwnd));
+    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(del_ack_count));
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(segmentSize));
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p"))); 
-    Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (queueSize)));
-    Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize",
-                       UintegerValue(20 * 1000));
+
+    // set traffic control queue size according to queue disc
+    if(queue_disc == "ns3::CoDelQueueDisc"){
+        tc_queueSize = "2084p";
+    } else {
+        tc_queueSize = "2083p";
+    }
+
+    Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
+    Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
+    
     // creating a directory to save results
     struct stat buffer;
     [[maybe_unused]] int retVal;
@@ -569,9 +573,7 @@ int main(int argc, char *argv[]) {
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
 
-    //////////////////////////////////////////////////////////////////
     /////////////////// Traffic Mixing //////////////////////////////
-    ////////////////////////////////////////////////////////////////
 
     NS_LOG_UNCOND("tcp: "<<n_tcp_flows<<" udp: "<<n_udp_flows<<" short lived: "<<n_short_tcp_flows);
 
@@ -722,7 +724,7 @@ int main(int argc, char *argv[]) {
     *parameters->GetStream()
         << "Queue Disc: " << "\t" << queue_disc << std::endl;
     *parameters->GetStream()
-        << "Queue Size: " << "\t" << queueSize << std::endl;
+        << "Queue Size: " << "\t" << tc_queueSize << std::endl;
     *parameters->GetStream()
         << "Simulation Stop time: " << "\t" << stop_time << std::endl;
 
