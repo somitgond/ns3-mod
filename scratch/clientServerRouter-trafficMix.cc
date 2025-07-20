@@ -313,7 +313,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         countBeta[node] += 1;
         betas[node] = betas[node]/countBeta[node];
         
-        int qth = giveQth(sumWin / nNodes, getBeta(), 2048);
+        int qth = giveQth(sumWin / nNodes, getBeta(), 2084);
 
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
