@@ -52,8 +52,7 @@ if __name__ == "__main__":
     dst_path = "results"
     number_of_simulations = 10
     random_seeds = [ 69713, 56629, 86799, 42653, 82842, 72958, 23256,
-                    14590, 98472, 8288, 42653, 42653, 42653, 42653,
-                    42653, 42653, 42653, 42653, 42653, 42653]
+                    14590, 98472, 8288]
     RTTs = []
     for i in range(number_of_simulations):
         RTTs.append((5 * i) + 198)
