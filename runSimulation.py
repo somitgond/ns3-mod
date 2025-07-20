@@ -92,7 +92,7 @@ if __name__ == "__main__":
             print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = {rtt}ms, qd = {qd}, tot_bytes = {tot_bytes}")
             print(f"Iteration: {num}")
             temp_rtt = f"{rtt}ms"
-            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={random_seed}" ./ns3 run scratch/{file_to_run} \
+            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} \
                     -- --RTT="{temp_rtt}" --queue_disc={qd} --bytes_to_send={tot_bytes}'
 
             # run the command
