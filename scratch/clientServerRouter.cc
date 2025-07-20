@@ -1,8 +1,8 @@
 /*
 Single bottleneck dumbbell network
 Active Queue Management using variable maxSize
-
 */
+
 #include "ns3/applications-module.h"
 #include "ns3/config-store-module.h"
 #include "ns3/core-module.h"
@@ -28,9 +28,6 @@ Active Queue Management using variable maxSize
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#define MAX_SOURCES 100;
-#define GLOBAL_SYNC_THRESHOLD 0.2;
 
 using namespace ns3;
 
@@ -410,8 +407,8 @@ int main(int argc, char *argv[]) {
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
-    Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 
-    Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (6291456));
+    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 
+    // Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (6291456));
     Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(initial_cwnd));
     Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(del_ack_count));
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(segmentSize));
@@ -425,7 +422,7 @@ int main(int argc, char *argv[]) {
     }
 
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
-    Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
+    // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
 
     // creating a directory to save results
     struct stat buffer;

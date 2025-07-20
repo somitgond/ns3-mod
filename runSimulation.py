@@ -30,16 +30,18 @@ def save_folder(src, dst):
     dst_gzip = dst + "/" + src_gzip
 
     # rename the src directory
-    subprocess.run(f"cp -r {src} {src_new}", shell=True)
+    subprocess.run(f"cp -r {src} {src_new}", shell=True, stdout=subprocess.DEVNULL)
 
     # gzip it
-    subprocess.run(f"tar -zcvf {src_gzip} {src_new}", shell=True)
+    subprocess.run(f"tar -zcvf {src_gzip} {src_new}", shell=True, stdout=subprocess.DEVNULL)
 
     # remove source new directory
-    subprocess.run(f"rm -r {src_new}", shell=True)
+    subprocess.run(f"rm -r {src_new}", shell=True, stdout=subprocess.DEVNULL)
 
     # move it
-    subprocess.run(f"mv {src_gzip} {dst_gzip}", shell=True)
+    subprocess.run(f"mv {src_gzip} {dst_gzip}", shell=True, stdout=subprocess.DEVNULL)
+
+    print("Successfully saved the results")
 
 
 if __name__ == "__main__":
@@ -74,7 +76,11 @@ if __name__ == "__main__":
                     -- --RTT="198ms" --queue_disc={qd} --bytes_to_send={tot_bytes}'
 
             # run the command
+            start = time.time()
             subprocess.run(cmd_to_run, shell=True)
+            end = time.time()
+            print(f"Execution time: {end-start:.4f} seconds")
+
             time.sleep(2)
 
             # save final simulation data
@@ -91,7 +97,10 @@ if __name__ == "__main__":
                     -- --RTT="{temp_rtt}" --queue_disc={qd} --bytes_to_send={tot_bytes}'
 
             # run the command
+            start = time.time()
             subprocess.run(cmd_to_run, shell=True)
+            end = time.time()
+            print(f"Execution time: {end-start:.4f} seconds")
             time.sleep(2)
 
             # save final simulation data
