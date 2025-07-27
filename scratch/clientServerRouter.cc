@@ -41,6 +41,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
+double cap, Tao;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
 bool AQM_ENABLED = 0;
@@ -135,7 +136,7 @@ int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
            tao = 0.5;
-
+    cap = c; Tao = tao;
     double val = pi/2;
 
     int qth = 10;
@@ -248,6 +249,7 @@ static void StartTracingTransmitedPacket() {
         MakeCallback(&TxPacket));
 }
 
+
 //////////// CALCULATNG BETA /////////////////
 bool needToUpdate = true;
 bool hasSynchrony = false;
@@ -261,6 +263,7 @@ std::vector<double> dropCounts;
 double sumWin = 0;
 
 void initiateArray() {
+    giveQth(1, 1, 1);
     betas = std::vector<double>(nNodes + 1, 0.5);
     countBeta = std::vector<double>(nNodes + 1, 0);
     dipStarted = std::vector<bool>(nNodes + 1, false);
@@ -313,11 +316,11 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
 
-        if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
+        if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < ((cap * Tao) - 0.1)) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
-
+            if(qth >= 2084)std::cout<<"!!! qth anomaly"<<std::endl;
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
@@ -367,6 +370,7 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
 
 int main(int argc, char *argv[]) {
     initiateArray();
+
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
