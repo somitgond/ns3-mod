@@ -41,7 +41,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
-double cap, Tao;
+double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
 bool AQM_ENABLED = 0;
@@ -135,7 +135,7 @@ int countZeroCrossings(const std::vector<double> &x) {
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = 0.5;
+           tao = 100/rtt_global;
     cap = c; Tao = tao;
     double val = pi/2;
 
@@ -467,6 +467,8 @@ int main(int argc, char *argv[]) {
     // Defining the links to be used between nodes
     double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10;
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
+
+    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2));
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
     x->SetAttribute("Min", DoubleValue(min));
