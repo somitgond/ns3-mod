@@ -135,7 +135,6 @@ int countZeroCrossings(const std::vector<double> &x) {
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = rtt_global/1000;
            tao = 0.5;
     cap = c; Tao = tao;
     double val = pi/2;
@@ -264,7 +263,6 @@ std::vector<double> dropCounts;
 double sumWin = 0;
 
 void initiateArray() {
-    giveQth(1, 1, 1);
     betas = std::vector<double>(nNodes + 1, 0.5);
     countBeta = std::vector<double>(nNodes + 1, 0);
     dipStarted = std::vector<bool>(nNodes + 1, false);
@@ -275,7 +273,6 @@ void initiateArray() {
 
 double getBeta() {
     double beta = 0, sm = 0;
-    for (int i = 0; i < nNodes; i++) {
     for (int i = 0; i < (int)nNodes; i++) {
         beta += betas[i] * dropCounts[i];
         sm += dropCounts[i];
@@ -288,6 +285,7 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
+    double oldVal = (double)oldval / (segSize*8);
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
@@ -316,6 +314,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
+        NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
         if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < (cap * Tao)) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
@@ -370,7 +369,6 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
 
 int main(int argc, char *argv[]) {
     initiateArray();
-
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
@@ -381,7 +379,9 @@ int main(int argc, char *argv[]) {
     std::string RTT = "198ms"; // round-trip time of each TCP flow
     std::string bottleneck_bandwidth =
         "100Mbps"; // bandwidth of the bottleneck link
+        std::string bottleneck_delay =
         "1ms"; // bottleneck link has negligible propagation delay
+        std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
     std::string zc_trace_filename = "zeroCrossingTrace-dumbbell";
@@ -401,6 +401,7 @@ int main(int argc, char *argv[]) {
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
+    
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
@@ -421,6 +422,7 @@ int main(int argc, char *argv[]) {
     } else {
         tc_queueSize = "2083p";
     }
+    
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
 
@@ -436,8 +438,10 @@ int main(int argc, char *argv[]) {
     std::string dirToSave = "mkdir -p " + dir;
     retVal = system(dirToSave.c_str());
     NS_ASSERT_MSG(retVal == 0, "Error in return value");
+    
     AsciiTraceHelper ascii_zc;
     zc_stream = ascii_zc.CreateFileStream(dir + zc_trace_filename + ".txt");
+    
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
     nodes.Create(2 + nNodes * 2);
@@ -461,7 +465,12 @@ int main(int argc, char *argv[]) {
     // Defining the links to be used between nodes
     double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10;
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
+    
+    // assigning tao and capacity
     rtt_global = std::stod(RTT.substr(0, RTT.length() - 2));
+    giveQth(1, 1, 1);
+    NS_LOG_UNCOND("limit: "<<cap <<" "<< Tao);
+    
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
     x->SetAttribute("Min", DoubleValue(min));
     x->SetAttribute("Max", DoubleValue(max));
