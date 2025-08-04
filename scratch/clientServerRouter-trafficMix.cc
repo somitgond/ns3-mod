@@ -42,6 +42,7 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
 std::string queue_disc = "ns3::FifoQueueDisc";
+double cap, Tao, rtt_global;
 
 bool AQM_ENABLED = 0;
 
@@ -141,8 +142,8 @@ int countZeroCrossings(const std::vector<double> &x) {
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = 0.5;
-
+           tao = rtt_global/1000;
+    Tao = tao; cap = c;
     double val = pi/2;
 
     int qth = 10;
@@ -290,7 +291,7 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
-    double oldVal = (double)oldval / segSize;
+    double oldVal = (double)oldval / (segSize * 8);
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
@@ -319,7 +320,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
 
-        if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
+        if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < (cap * Tao)) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
@@ -474,6 +475,10 @@ int main(int argc, char *argv[]) {
     // Defining the links to be used between nodes
     double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10;
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
+
+    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2));
+    giveQth(1, 1, 1);
+    NS_LOG_UNCOND("limit: "<<cap <<" "<< Tao);
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
     x->SetAttribute("Min", DoubleValue(min));
