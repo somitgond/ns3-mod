@@ -135,7 +135,7 @@ int countZeroCrossings(const std::vector<double> &x) {
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = 0.5;
+           tao = rtt_global/1000;
     cap = c; Tao = tao;
     double val = pi/2;
 
@@ -315,6 +315,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
         NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+        NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
         if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < (cap * Tao)) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
