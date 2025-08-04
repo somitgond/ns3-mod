@@ -468,7 +468,7 @@ int main(int argc, char *argv[]) {
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
     
     // assigning tao and capacity
-    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2));
+    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2)) + 2; // 2 for bottleneck link
     giveQth(1, 1, 1);
     NS_LOG_UNCOND("limit: "<<cap <<" "<< Tao);
     
