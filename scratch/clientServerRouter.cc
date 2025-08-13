@@ -320,8 +320,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
-        NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
-        NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
+        // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+        // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
         if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
             // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
