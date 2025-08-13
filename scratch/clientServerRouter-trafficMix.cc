@@ -140,18 +140,24 @@ int countZeroCrossings(const std::vector<double> &x) {
 //////////////// get qth ///////////////
 
 int giveQth(double w_av, double beta, int B) {
-    double capacity = 100; // in mbps
+    double capacity = 100; // in mbitsps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = rtt_global/1000;
-    Tao = tao; cap = c;
+    tao = rtt_global/1000;
+    //    tao = 0.5;
+    cap = c;
+    Tao = tao;
     double val = pi/2;
 
     int qth = 10;
-    double f = qth*beta*w_av*pow(w_av/(c*tao), qth);
+    double f;
+    if(w_av > (c*tao)) f = qth*beta*(c*tao)*pow(0.9, qth+1);
+    else f = qth*beta*w_av*pow((w_av/(c*tao)), qth);
+
 
     while(f > val && qth < B){
         qth += 1;
-        f = qth*beta*w_av*pow(w_av/(c*tao), qth);
+        if(w_av > (c*tao)) f = qth*beta*(c*tao)*pow(0.9, qth+1);
+        else f = qth*beta*w_av*pow((w_av/(c*tao)), qth);
     }
 
     return qth;
@@ -320,7 +326,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
 
-        if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < (cap * Tao)) && (qth > 0) && (temp_len > 3)) {
+        if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
