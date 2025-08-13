@@ -133,18 +133,24 @@ int countZeroCrossings(const std::vector<double> &x) {
 //////////////// get qth ///////////////
 
 int giveQth(double w_av, double beta, int B) {
-    double capacity = 100; // in mbps
+    double capacity = 100; // in mbitsps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-           tao = rtt_global/1000;
-    cap = c; Tao = tao;
+    tao = rtt_global/1000;
+    //    tao = 0.5;
+    cap = c;
+    Tao = tao;
     double val = pi/2;
 
     int qth = 10;
-    double f = qth*beta*w_av*pow(w_av/(c*tao), qth);
+    double f;
+    if(w_av > (c*tao)) f = qth*beta*(c*tao)*pow(0.9, qth+1);
+    else f = qth*beta*w_av*pow((w_av/(c*tao)), qth);
+
 
     while(f > val && qth < B){
         qth += 1;
-        f = qth*beta*w_av*pow(w_av/(c*tao), qth);
+        if(w_av > (c*tao)) f = qth*beta*(c*tao)*pow(0.9, qth+1);
+        else f = qth*beta*w_av*pow((w_av/(c*tao)), qth);
     }
 
     return qth;
@@ -285,7 +291,7 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
-    double oldVal = (double)oldval / (segSize*8);
+    double oldVal = (double)oldval / segSize;
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
@@ -317,6 +323,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
         // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
         if ((t_gp > 0.1) && (t_gp < 0.9) && ((sumWin / nNodes) < (cap * Tao)) && (qth > 0) && (temp_len > 3)) {
+            // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+            // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
@@ -370,7 +378,7 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
 
 int main(int argc, char *argv[]) {
     initiateArray();
-    uint32_t del_ack_count = 2;
+    uint32_t del_ack_count = 1;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
     uint32_t bytes_to_send = 0;                    // 0 for unbounded
@@ -380,9 +388,9 @@ int main(int argc, char *argv[]) {
     std::string RTT = "198ms"; // round-trip time of each TCP flow
     std::string bottleneck_bandwidth =
         "100Mbps"; // bandwidth of the bottleneck link
-        std::string bottleneck_delay =
+    std::string bottleneck_delay =
         "1ms"; // bottleneck link has negligible propagation delay
-        std::string access_bandwidth = "2Mbps";
+    std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
     std::string zc_trace_filename = "zeroCrossingTrace-dumbbell";
@@ -540,7 +548,9 @@ int main(int argc, char *argv[]) {
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     queueDisc_router = queueDiscs.Get(0);
-
+    
+    // setting Queue size to 1
+    SetQueueSize(2048);
 
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
