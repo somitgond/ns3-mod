@@ -297,7 +297,7 @@ double getBeta() {
 
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
-    double oldVal = (double)oldval / (segSize * 8);
+    double oldVal = (double)oldval / segSize;
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
@@ -320,12 +320,14 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         countBeta[node] += 1;
         betas[node] = betas[node]/countBeta[node];
         
-        int qth = giveQth(sumWin / nNodes, getBeta(), 2084);
+        int qth = giveQth(sumWin / (nNodes - n_udp_flows), getBeta(), 2084);
 
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
-
+        NS_LOG_UNCOND("w*: "<<(sumWin / (nNodes - n_udp_flows))<<" limit: "<<(cap * Tao));
+        NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
+       
         if ((t_gp > 0.1) && (t_gp < 0.9) && (qth > 0) && (temp_len > 3)) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
@@ -335,7 +337,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
                 *parameters->GetStream() << "AQM triggered with qth: " <<qth 
-                    << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
+                    << " w* : " << sumWin/(nNodes - n_udp_flows) << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
