@@ -328,7 +328,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
-            if(qth >= 2084)std::cout<<"!!! qth anomaly"<<std::endl;
+            if(qth >= 2084)std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
@@ -338,7 +338,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
                 AQM_ENABLED = 1;
                 NS_LOG_UNCOND("----------------------DONE!!");
-                NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
+                NS_LOG_UNCOND("--------BETA: " << getBeta() << "-------");
+                NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED << "-------");
             }
         }
     }
@@ -410,12 +411,14 @@ int main(int argc, char *argv[]) {
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
+    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", AQM_ENABLED);
     
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
+    NS_LOG_UNCOND("AQM_ENABLED: " << AQM_ENABLED);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 

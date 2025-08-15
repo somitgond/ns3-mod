@@ -419,12 +419,14 @@ int main(int argc, char *argv[]) {
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue discipline at router", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
+    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", AQM_ENABLED);
 
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
+    NS_LOG_UNCOND("AQM_ENABLED: " << AQM_ENABLED);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 

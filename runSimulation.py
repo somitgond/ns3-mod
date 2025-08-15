@@ -65,14 +65,18 @@ if __name__ == "__main__":
     # tot_bytes = 100 * 1000000
 
     file_to_run = "clientServerRouter.cc"
+    aqm_enabled = 0;
 
     for qd in queue_discs:
         # for one RTT, n number of random seeds
+        if(qd == "ns3::CoDelQueueDisc"):
+            aqm_enabled = 1
+        else:
+            aqm_enabled = 0
         num = 0;
         for rs in random_seeds:
-            print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = 198ms, qd = {qd}, tot_bytes = {tot_bytes}")
-            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run}  \
-                    -- --RTT="198ms" --queue_disc={qd} --bytes_to_send={tot_bytes}'
+            print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = 198ms, qd = {qd}, tot_bytes = {tot_bytes}, AQM_ENABLED={aqm_enabled}")
+            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} -- --RTT="198ms" --queue_disc={qd} --bytes_to_send={tot_bytes} --AQM_ENABLED={aqm_enabled}'
 
             # run the command
             start = time.time()
@@ -89,11 +93,10 @@ if __name__ == "__main__":
         # for one random seed and n rtts
         rs = 42653
         for rtt in RTTs:
-            print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = {rtt}ms, qd = {qd}, tot_bytes = {tot_bytes}")
+            print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = {rtt}ms, qd = {qd}, tot_bytes = {tot_bytes}, AQM_ENABLED={aqm_enabled}")
             print(f"Iteration: {num}")
             temp_rtt = f"{rtt}ms"
-            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} \
-                    -- --RTT="{temp_rtt}" --queue_disc={qd} --bytes_to_send={tot_bytes}'
+            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} -- --RTT="{temp_rtt}" --queue_disc={qd} --bytes_to_send={tot_bytes} --AQM_ENABLED={aqm_enabled}'
 
             # run the command
             start = time.time()
