@@ -51,6 +51,8 @@ if __name__ == "__main__":
     folder_path = src_path + "/"
     dst_path = "results"
     number_of_simulations = 10
+    # run simulation with different random seeds, if set to 1 
+    enable_random_seed_simulation = 0
     random_seeds = [ 69713, 56629, 86799, 42653, 82842, 72958, 23256,
                     14590, 98472, 8288]
     RTTs = []
@@ -58,7 +60,7 @@ if __name__ == "__main__":
         RTTs.append((5 * i) + 198)
 
     # required queue disc
-    queue_discs = ["ns3::FifoQueueDisc", "ns3::CoDelQueueDisc"]
+    aqm_policy = ["aqm", "codel", "droptail"]
 
     # total data to transfer
     tot_bytes = 0 # 0 means infinte data
@@ -67,28 +69,35 @@ if __name__ == "__main__":
     file_to_run = "clientServerRouter.cc"
     aqm_enabled = 0;
 
-    for qd in queue_discs:
-        # for one RTT, n number of random seeds
-        if(qd == "ns3::CoDelQueueDisc"):
+    for ap in aqm_policy:
+        # setting queue disc
+        if(ap == "aqm"):
+            qd = "ns3::FifoQueueDisc"
+            aqm_enabled = 0;
+        elif(ap == "codel"):
+            qd = "ns3::CoDelQueueDisc"
             aqm_enabled = 1
-        else:
-            aqm_enabled = 0
+        elif(ap == "droptail"):
+            qd = "ns3::FifoQueueDisc"
+            aqm_enabled = 1
         num = 0;
-        for rs in random_seeds:
-            print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = 198ms, qd = {qd}, tot_bytes = {tot_bytes}, AQM_ENABLED={aqm_enabled}")
-            cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} -- --RTT="198ms" --queue_disc={qd} --bytes_to_send={tot_bytes} --AQM_ENABLED={aqm_enabled}'
 
-            # run the command
-            start = time.time()
-            subprocess.run(cmd_to_run, shell=True)
-            end = time.time()
-            print(f"Execution time: {end-start:.4f} seconds")
+        if(enable_random_seed_simulation == 1):
+            for rs in random_seeds:
+                print(f"Simulation {num}: rng = {rs}, file = {file_to_run}, rtt = 198ms, qd = {qd}, tot_bytes = {tot_bytes}, AQM_ENABLED={aqm_enabled}")
+                cmd_to_run = f'NS_GLOBAL_VALUE="RngRun={rs}" ./ns3 run scratch/{file_to_run} -- --RTT="198ms" --queue_disc={qd} --bytes_to_send={tot_bytes} --AQM_ENABLED={aqm_enabled}'
 
-            time.sleep(2)
+                # run the command
+                start = time.time()
+                subprocess.run(cmd_to_run, shell=True)
+                end = time.time()
+                print(f"Execution time: {end-start:.4f} seconds")
 
-            # save final simulation data
-            save_folder(src_path, dst_path)
-            num += 1
+                time.sleep(2)
+
+                # save final simulation data
+                save_folder(src_path, dst_path)
+                num += 1
 
         # for one random seed and n rtts
         rs = 42653
