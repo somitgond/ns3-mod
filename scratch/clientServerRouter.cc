@@ -429,19 +429,11 @@ int main(int argc, char *argv[]) {
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p"))); 
 
     // set traffic control queue size according to queue disc
-    if(queue_disc == "ns3::CoDelQueueDisc")
+    if (queue_disc == "ns3::RedQueueDisc")
     {
-        tc_queueSize = "2084p";
-    } else if (queue_disc == "ns3::RedQueueDisc")
-    {
-        tc_queueSize = "2084p";
         // enable ARED
         Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
-    } else
-    {
-        tc_queueSize = "2083p";
     }
-
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
 
@@ -566,7 +558,7 @@ int main(int argc, char *argv[]) {
     queueDisc_router = queueDiscs.Get(0);
     
     // setting Queue size to 1
-    SetQueueSize(2048);
+    //SetQueueSize(2048);
 
     // Giving IP Address to each node
     Ipv4AddressHelper ipv4;
