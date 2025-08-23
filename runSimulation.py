@@ -60,7 +60,7 @@ if __name__ == "__main__":
         RTTs.append((5 * i) + 198)
 
     # required queue disc
-    aqm_policy = ["aqm", "codel", "droptail"]
+    aqm_policy = ["aqm", "codel", "droptail", "red"]
 
     # total data to transfer
     tot_bytes = 0 # 0 means infinte data
@@ -79,6 +79,9 @@ if __name__ == "__main__":
             aqm_enabled = 1
         elif(ap == "droptail"):
             qd = "ns3::FifoQueueDisc"
+            aqm_enabled = 1
+        elif(ap == "red"):
+            qd = "ns3::RedQueueDisc"
             aqm_enabled = 1
         num = 0;
 

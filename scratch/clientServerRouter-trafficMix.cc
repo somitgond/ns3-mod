@@ -437,9 +437,16 @@ int main(int argc, char *argv[]) {
     // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p"))); 
 
     // set traffic control queue size according to queue disc
-    if(queue_disc == "ns3::CoDelQueueDisc"){
+    if(queue_disc == "ns3::CoDelQueueDisc")
+    {
         tc_queueSize = "2084p";
-    } else {
+    } else if (queue_disc == "ns3::RedQueueDisc")
+    {
+        tc_queueSize = "2084p";
+        // enable ARED
+        Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
+    } else
+    {
         tc_queueSize = "2083p";
     }
 
@@ -557,9 +564,15 @@ int main(int argc, char *argv[]) {
         }
     }
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc(queue_disc, "MaxSize",
-                         QueueSizeValue(QueueSize(tc_queueSize)));
-    QueueDiscContainer queueDiscs = tch.Install(r1r2ND);
+    if(queue_disc == "ns3::RedQueueDisc"){
+      tch.SetRootQueueDisc(queue_disc, 
+          "MaxSize", QueueSizeValue(QueueSize(tc_queueSize)),
+          "MinTh", DoubleValue (50),
+          "MaxTh", DoubleValue (100));
+    } else {
+      tch.SetRootQueueDisc(queue_disc, "MaxSize", QueueSizeValue(QueueSize(tc_queueSize)));
+    }
+    QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(0));
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     if(queue_disc == "ns3::FifoQueueDisc"){
         queueDisc_router = queueDiscs.Get(0);
