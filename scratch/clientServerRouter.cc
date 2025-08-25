@@ -431,8 +431,19 @@ int main(int argc, char *argv[]) {
     // set traffic control queue size according to queue disc
     if (queue_disc == "ns3::RedQueueDisc")
     {
-        // enable ARED
-        Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
+      Config::SetDefault ("ns3::RedQueueDisc::LinkBandwidth", StringValue (bottleneck_bandwidth));
+      Config::SetDefault ("ns3::RedQueueDisc::LinkDelay", StringValue (bottleneck_delay));
+      // set min and max qth
+      int _qth = std::stod(tc_queueSize.substr(0, tc_queueSize.length() - 1));
+      int minTh = _qth * 0.5;
+      int maxTh = _qth * 0.8;
+      NS_LOG_UNCOND("minTh: "<<minTh);
+      NS_LOG_UNCOND("maxTh: "<<maxTh);
+      Config::SetDefault ("ns3::RedQueueDisc::MinTh", DoubleValue (minTh));
+      Config::SetDefault ("ns3::RedQueueDisc::MaxTh", DoubleValue (maxTh));
+      
+      // enable ARED
+      Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
     }
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
@@ -545,14 +556,7 @@ int main(int argc, char *argv[]) {
         }
     }
     TrafficControlHelper tch;
-    if(queue_disc == "ns3::RedQueueDisc"){
-      tch.SetRootQueueDisc(queue_disc, 
-          "MaxSize", QueueSizeValue(QueueSize(tc_queueSize)),
-          "MinTh", DoubleValue (50),
-          "MaxTh", DoubleValue (100));
-    } else {
-      tch.SetRootQueueDisc(queue_disc, "MaxSize", QueueSizeValue(QueueSize(tc_queueSize)));
-    }
+    tch.SetRootQueueDisc(queue_disc);
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(0));
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     queueDisc_router = queueDiscs.Get(0);
