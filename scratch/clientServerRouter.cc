@@ -41,6 +41,7 @@ double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 60;
+uint32_t bytes_to_send = 0;                    // 0 for unbounded
 double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
@@ -73,6 +74,13 @@ std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
 Ptr<OutputStreamWrapper> zc_stream;
+
+std::vector<uint64_t> clientBytes (nNodes, 0);
+
+void TxTrace (uint32_t clientId, Ptr<const Packet> p)
+{
+    clientBytes[clientId] += p->GetSize ();
+}
 
 // Compute mean
 double computeMean(const std::vector<double> &x) {
@@ -376,13 +384,32 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
         cwnd_streams.push_back(stream);
     }
 }
+void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
+{
+  int totCount = 0;
+  for (int i = 0; i < nNodes; i++)
+  {
+    if (clientBytes[i] >= bytes_to_send) // still sending
+      totCount++;
+  }
+
+  if (totCount == nNodes)
+  {
+    std::cout << "All flows finished at " << Simulator::Now ().GetSeconds () << "s\n";
+    Simulator::Stop ();
+  }
+  else
+  {
+    Simulator::Schedule (Seconds (1.0), &CheckCompletion, apps);
+  }
+}
+
 
 int main(int argc, char *argv[]) {
     initiateArray();
     uint32_t del_ack_count = 1;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
-    uint32_t bytes_to_send = 0;                    // 0 for unbounded
     std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
@@ -554,8 +581,7 @@ int main(int argc, char *argv[]) {
         if (tcLayer != nullptr) {
             Ptr<QueueDisc> rootDisc = tcLayer->GetRootQueueDiscOnDevice(device);
             if (rootDisc != nullptr) {
-                tcLayer->DeleteRootQueueDiscOnDevice(
-                    device); // Remove existing queue disc
+                tcLayer->DeleteRootQueueDiscOnDevice(device); // Remove existing queue disc
             }
         }
     }
@@ -617,8 +643,7 @@ int main(int argc, char *argv[]) {
     double stime = start_time;
     // Configuring the application at each source node.
     for (uint32_t i = 0; i < nNodes; i++) {
-        BulkSendHelper tmp_source(
-            "ns3::TcpSocketFactory",
+        BulkSendHelper tmp_source( "ns3::TcpSocketFactory",
             InetSocketAddress(rIp[i].GetAddress(0), port));
 
         // Set the amount of data to send in bytes.  Zero is unlimited.
@@ -631,47 +656,52 @@ int main(int argc, char *argv[]) {
 
         stime += gap;
     }
+    // tracing total data sent in bulksend
+    if(bytes_to_send > 0)
+    {
+      std::vector<Ptr<BulkSendApplication>> bulkApps;
+      for (uint32_t i = 0; i < nNodes; ++i)
+      {
+        for(uint32_t j = 0; j < sourceApps[i].GetN(); ++j)
+        {
+          Ptr<BulkSendApplication> bulkApp = DynamicCast<BulkSendApplication>(sourceApps[i].Get(j));
+          bulkApps.push_back (bulkApp);
+          // Bind client ID into the callback
+          bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, i)); // trace total number of bytes sent so far
+        }
+      }
+      Simulator::Schedule (Seconds (stime), &CheckCompletion, bulkApps);
+    }
 
     // write parameters
     AsciiTraceHelper parameters_helper;
 
-    parameters =
-        parameters_helper.CreateFileStream(dir + parametersFileName + ".txt");
+    parameters = parameters_helper.CreateFileStream(dir + parametersFileName + ".txt");
     *parameters->GetStream() << "regular cwnd sampling." << std::endl;
-    *parameters->GetStream() << "Nodes : " << "\t" << nNodes << std::endl;
-    *parameters->GetStream()
-        << "TCP type id: " << "\t" << tcp_type_id << std::endl;
-    *parameters->GetStream() << "RTT : " << "\t" << RTT << std::endl;
-    *parameters->GetStream()
-        << "Bottleneck Delay: " << "\t" << bottleneck_delay << std::endl;
-    *parameters->GetStream() << "Bottleneck Bandwidth: " << "\t"
-                             << bottleneck_bandwidth << std::endl;
-    *parameters->GetStream()
-        << "Queue Disc: " << "\t" << queue_disc << std::endl;
-    *parameters->GetStream()
-        << "Queue Size: " << "\t" << queue_size << std::endl;
-    *parameters->GetStream()
-        << "Simulation Stop time: " << "\t" << stop_time << std::endl;
+    *parameters->GetStream() << "Nodes : \t" << nNodes << std::endl;
+    *parameters->GetStream() << "TCP type id: \t" << tcp_type_id << std::endl;
+    *parameters->GetStream() << "RTT : \t" << RTT << std::endl;
+    *parameters->GetStream() << "Bottleneck Delay: \t" << bottleneck_delay << std::endl;
+    *parameters->GetStream() << "Bottleneck Bandwidth: \t" << bottleneck_bandwidth << std::endl;
+    *parameters->GetStream() << "Queue Disc: \t" << queue_disc << std::endl;
+    *parameters->GetStream() << "Queue Size: \t" << queue_size << std::endl;
+    *parameters->GetStream() << "Simulation Stop time: \t" << stop_time << std::endl;
 
     // Configuring file stream to write the Qsize
     AsciiTraceHelper ascii_qsize;
-    qSize_stream =
-        ascii_qsize.CreateFileStream(dir + qsize_trace_filename + ".txt");
+    qSize_stream = ascii_qsize.CreateFileStream(dir + qsize_trace_filename + ".txt");
 
     // trace traffic control qsize
     AsciiTraceHelper ascii_tc_qsize;
-    tc_qSize_stream =
-        ascii_tc_qsize.CreateFileStream(dir + tc_qsize_trace_filename + ".txt");
+    tc_qSize_stream = ascii_tc_qsize.CreateFileStream(dir + tc_qsize_trace_filename + ".txt");
 
     // Configuring file stream to write the no of packets transmitted by the
     // bottleneck
     AsciiTraceHelper ascii_qsize_tx;
-    bottleneckTransimittedStream =
-        ascii_qsize_tx.CreateFileStream(dir + bottleneck_tx_filename + ".txt");
+    bottleneckTransimittedStream = ascii_qsize_tx.CreateFileStream(dir + bottleneck_tx_filename + ".txt");
 
     AsciiTraceHelper ascii_dropped;
-    dropped_stream =
-        ascii_dropped.CreateFileStream(dir + dropped_trace_filename + ".txt");
+    dropped_stream = ascii_dropped.CreateFileStream(dir + dropped_trace_filename + ".txt");
     // start tracing the congestion window size and qSize
 
     Simulator::Schedule(Seconds(stime), &start_tracing_timeCwnd, nNodes);
@@ -682,12 +712,10 @@ int main(int argc, char *argv[]) {
     //    &writeCwndToFile, nNodes);
 
     // start tracing Queue Size and Dropped Files
-    Simulator::Schedule(Seconds(stime), &TraceDroppedPacket,
-                        dropped_trace_filename);
+    Simulator::Schedule(Seconds(stime), &TraceDroppedPacket, dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files
     // periodically ( 1 sec. )
-    for (auto time = stime + start_tracing_time; time < stop_time;
-         time += 0.1) {
+    for (auto time = stime + start_tracing_time; time < stop_time; time += 0.1) {
         Simulator::Schedule(Seconds(time), &writeCwndToFile, nNodes);
         Simulator::Schedule(Seconds(time), &TraceQueueSizeTc, queueDisc);
         Simulator::Schedule(Seconds(time), &TraceQueueSize);

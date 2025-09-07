@@ -40,6 +40,7 @@ uint32_t segmentSize = 1400;
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
+uint32_t bytes_to_send = 0;                    // 0 for unbounded
 uint32_t nNodes = 60;
 std::string queue_disc = "ns3::FifoQueueDisc";
 double cap, Tao, rtt_global;
@@ -80,6 +81,13 @@ std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
 Ptr<OutputStreamWrapper> zc_stream;
+
+std::vector<uint64_t> clientBytes (n_tcp_flows, 0);
+
+void TxTrace (uint32_t clientId, Ptr<const Packet> p)
+{
+    clientBytes[clientId] += p->GetSize ();
+}
 
 // Compute mean
 double computeMean(const std::vector<double> &x) {
@@ -384,13 +392,31 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
         cwnd_streams.push_back(stream);
     }
 }
+void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
+{
+  int totCount = 0;
+  for (int i = 0; i < n_tcp_flows; i++)
+  {
+    if (clientBytes[i] >= bytes_to_send) // still sending
+      totCount++;
+  }
+
+  if (totCount == n_tcp_flows)
+  {
+    std::cout << "All TCP flows finished at " << Simulator::Now ().GetSeconds () << "s\n";
+    Simulator::Stop ();
+  }
+  else
+  {
+    Simulator::Schedule (Seconds (1.0), &CheckCompletion, apps);
+  }
+}
 
 int main(int argc, char *argv[]) {
     initiateArray();
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
-    uint32_t bytes_to_send = 0;                    // 0 for unbounded
     std::string tcp_type_id = "ns3::TcpLinuxReno"; // TcpNewReno,
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
@@ -648,6 +674,23 @@ int main(int argc, char *argv[]) {
 
         stime += gap;
     }
+    // tracing total data sent in bulksend
+    if(bytes_to_send > 0) // if number of bytes is greater than 0 stop the flows when last of tcp finishes 
+    {
+      std::vector<Ptr<BulkSendApplication>> bulkApps;
+      for (uint32_t i = 0; i < n_tcp_flows; ++i)
+      {
+        for(uint32_t j = 0; j < sourceApps[i].GetN(); ++j)
+        {
+          Ptr<BulkSendApplication> bulkApp = DynamicCast<BulkSendApplication>(sourceApps[i].Get(j));
+          bulkApps.push_back (bulkApp);
+          // Bind client ID into the callback
+          bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, i)); // trace total number of bytes sent so far
+        }
+      }
+      Simulator::Schedule (Seconds (stime), &CheckCompletion, bulkApps);
+    }
+
     ///// udp
     // Attack sink to all nodes
     PacketSinkHelper packetSinkHelper_udp(
