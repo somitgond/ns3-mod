@@ -58,7 +58,7 @@ uint64_t queue_size;
 Ptr<OutputStreamWrapper> qSize_stream;
 Ptr<OutputStreamWrapper> tc_qSize_stream;
 
-uint64_t bottleneckTransimitted;
+uint64_t bottleneckTransimittedBytes;
 Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
 
 uint64_t droppedPackets;
@@ -206,7 +206,9 @@ static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p) {
     droppedPackets++;
 }
 
-static void TxPacket(Ptr<const Packet> p) { bottleneckTransimitted++; }
+static void TxPacket(Ptr<const Packet> p) { 
+  bottleneckTransimittedBytes += p->GetSize(); 
+}
 
 static void TraceDroppedPacket(std::string dropped_trace_filename) {
     // tracing all the dropped packets in a seperate file
@@ -238,7 +240,7 @@ static void TraceDroppedPkts() {
 
 static void TraceBottleneckTx() {
     *bottleneckTransimittedStream->GetStream()
-        << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimitted
+        << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimittedBytes
         << std::endl;
 }
 
@@ -257,7 +259,7 @@ static void StartTracingQueueSize() {
 }
 
 static void StartTracingTransmitedPacket() {
-    bottleneckTransimitted = 0;
+    bottleneckTransimittedBytes = 0;
     Config::ConnectWithoutContext(
         "/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd",
         MakeCallback(&TxPacket));
