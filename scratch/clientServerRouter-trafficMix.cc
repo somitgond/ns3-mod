@@ -36,7 +36,7 @@ NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 std::string dir = "result-clientServerRouter/";
 uint32_t prev = 0;
 Time prevTime = Seconds(0);
-uint32_t segmentSize = 1400;
+uint32_t segmentSize = 1400; // segment size 
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
@@ -45,7 +45,7 @@ uint32_t nNodes = 60;
 std::string queue_disc = "ns3::FifoQueueDisc";
 double cap, Tao, rtt_global;
 
-bool AQM_ENABLED = 0;
+bool AQM_ENABLED = 0; // 0: if we want to run our aqm, 1: don't run our aqm
 
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
@@ -76,7 +76,8 @@ uint32_t n_short_tcp_flows = nNodes - (n_tcp_flows + n_udp_flows);
 
 // find zero crossings in autocorrelation in queue data
 uint32_t Q_WINDOW = 50;
-uint32_t ZC_THRE = 5;
+// zero crossing threshold, determined after doing experimentation with different queue size
+uint32_t ZC_THRE = 5; 
 std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
@@ -150,7 +151,7 @@ int countZeroCrossings(const std::vector<double> &x) {
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbitsps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
-    tao = rtt_global/1000;
+           tao = rtt_global/1000; 
     //    tao = 0.5;
     cap = c;
     Tao = tao;
@@ -340,7 +341,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             auto ta = zerocrossings_data[temp_len - 1];
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
-
+            if(qth >= 2084)std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+            // AQM will be triggered only once
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
@@ -392,6 +394,8 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
         cwnd_streams.push_back(stream);
     }
 }
+
+// check if all flows has finished sending 'bytes_to_send' data
 void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 {
   int totCount = 0;
@@ -421,10 +425,8 @@ int main(int argc, char *argv[]) {
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
     std::string RTT = "198ms"; // round-trip time of each TCP flow
-    std::string bottleneck_bandwidth =
-        "100Mbps"; // bandwidth of the bottleneck link
-    std::string bottleneck_delay =
-        "1ms"; // bottleneck link has negligible propagation delay
+    std::string bottleneck_bandwidth = "100Mbps"; // bandwidth of the bottleneck link
+    std::string bottleneck_delay = "1ms"; // bottleneck link has negligible propagation delay
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
@@ -435,10 +437,10 @@ int main(int argc, char *argv[]) {
     std::string rttFileName = "RTTs";
 
     std::string parametersFileName = "parameters";
-    float stop_time = 800;
+    float stop_time = 800; // simulation stop time 
     float start_time = 0;
-    float start_tracing_time = 5;
-    bool enable_bot_trace = 0;
+    float start_tracing_time = 5; // start tracing sources
+    bool enable_bot_trace = 0; // start tracing at router 0
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
@@ -469,7 +471,6 @@ int main(int argc, char *argv[]) {
       Config::SetDefault ("ns3::RedQueueDisc::Gentle", BooleanValue (false));
 
       // set min and max qth
-      int _qth = std::stod(tc_queueSize.substr(0, tc_queueSize.length() - 1));
       int minTh = 50;
       int maxTh = 100;
       NS_LOG_UNCOND("minTh: "<<minTh);
@@ -518,7 +519,8 @@ int main(int argc, char *argv[]) {
         leftNodes[i] = NodeContainer(nodes.Get(i + 2), nodes.Get(0));
         rightNodes[i] = NodeContainer(nodes.Get(2 + nNodes + i), nodes.Get(1));
     }
-    // write RTT
+
+    // write RTT for all client nodes
     AsciiTraceHelper rtt_helper;
     rtts = rtt_helper.CreateFileStream(dir + rttFileName + ".txt");
 
@@ -527,7 +529,8 @@ int main(int argc, char *argv[]) {
     double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10;
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
 
-    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2));
+    // assigning tao and capacity
+    rtt_global = std::stod(RTT.substr(0, RTT.length() - 2)) + 2; // 2 for bottleneck link
     giveQth(1, 1, 1);
     NS_LOG_UNCOND("limit: "<<cap <<" "<< Tao);
 
@@ -546,7 +549,6 @@ int main(int argc, char *argv[]) {
     PointToPointHelper p2p_s[nNodes], p2p_d[nNodes];
     for (uint32_t i = 0; i < nNodes; i++) {
         double delay = (x->GetValue()) / 4;
-        // std::cout << delay*2 << std::endl;
         std::string delay_str = std::to_string(delay) + "ms";
         // write delay
         *rtts->GetStream() << i << " " << delay * 4 << std::endl;
@@ -555,16 +557,14 @@ int main(int argc, char *argv[]) {
         p2p_s[i].SetChannelAttribute("Delay", StringValue(delay_str));
         p2p_s[i].SetQueue(
             "ns3::DropTailQueue<Packet>", "MaxSize",
-            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +
-                                     "p"))); // p in 1000p stands for packets
+            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) + "p"))); // p in 1000p stands for packets
         p2p_s[i].DisableFlowControl();
 
         p2p_d[i].SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
         p2p_d[i].SetChannelAttribute("Delay", StringValue(delay_str));
         p2p_d[i].SetQueue(
             "ns3::DropTailQueue<Packet>", "MaxSize",
-            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) +
-                                     "p"))); // p in 1000p stands for packets
+            QueueSizeValue(QueueSize(std::to_string(0 / nNodes) + "p"))); // p in 1000p stands for packets
         p2p_d[i].DisableFlowControl();
     }
 
@@ -592,8 +592,7 @@ int main(int argc, char *argv[]) {
         if (tcLayer != nullptr) {
             Ptr<QueueDisc> rootDisc = tcLayer->GetRootQueueDiscOnDevice(device);
             if (rootDisc != nullptr) {
-                tcLayer->DeleteRootQueueDiscOnDevice(
-                    device); // Remove existing queue disc
+                tcLayer->DeleteRootQueueDiscOnDevice(device); // Remove existing queue disc
             }
         }
     }
@@ -623,7 +622,6 @@ int main(int argc, char *argv[]) {
     }
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
 
     /////////////////// Traffic Mixing //////////////////////////////
 
@@ -692,7 +690,7 @@ int main(int argc, char *argv[]) {
     }
 
     ///// udp
-    // Attack sink to all nodes
+    // Attach sink to all nodes
     PacketSinkHelper packetSinkHelper_udp(
         "ns3::UdpSocketFactory",
         InetSocketAddress(Ipv4Address::GetAny(), port));
@@ -830,8 +828,7 @@ int main(int argc, char *argv[]) {
                         dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files
     // periodically ( 1 sec. )
-    for (auto time = stime + start_tracing_time; time < stop_time;
-         time += 0.1) {
+    for (auto time = stime + start_tracing_time; time < stop_time; time += 0.1) {
         Simulator::Schedule(Seconds(time), &writeCwndToFile, nNodes);
         Simulator::Schedule(Seconds(time), &TraceQueueSizeTc, queueDisc);
         Simulator::Schedule(Seconds(time), &TraceQueueSize);

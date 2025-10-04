@@ -36,7 +36,7 @@ NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 std::string dir = "result-clientServerRouter/";
 uint32_t prev = 0;
 Time prevTime = Seconds(0);
-uint32_t segmentSize = 1400;
+uint32_t segmentSize = 1400; // segment size 
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
@@ -45,9 +45,9 @@ uint32_t bytes_to_send = 0;                    // 0 for unbounded
 double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
-bool AQM_ENABLED = 0;
+bool AQM_ENABLED = 0; // 0: if we want to run our aqm, 1: don't run our aqm
 
-// to store parameters
+// store parameters in a file
 Ptr<OutputStreamWrapper> parameters;
 
 std::vector<uint32_t> cwnd(nNodes + 1, 0);
@@ -69,7 +69,8 @@ Ptr<QueueDisc> queueDisc_router = CreateObject<FifoQueueDisc>();
 
 // find zero crossings in autocorrelation in queue data
 uint32_t Q_WINDOW = 50;
-uint32_t ZC_THRE = 5;
+// zero crossing threshold, determined after doing experimentation with different queue size
+uint32_t ZC_THRE = 5; 
 std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
@@ -139,7 +140,6 @@ int countZeroCrossings(const std::vector<double> &x) {
 }
 
 //////////////// get qth ///////////////
-
 int giveQth(double w_av, double beta, int B) {
     double capacity = 100; // in mbitsps
     double pi = 3.141593, c = (capacity * 1000000 / (segSize * 8 * nNodes)),
@@ -339,6 +339,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             auto tb = zerocrossings_data[temp_len - 2];
             auto tc = zerocrossings_data[temp_len - 3];
             if(qth >= 2084)std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+            // AQM will be triggered only once
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
@@ -346,7 +347,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                     << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
-                AQM_ENABLED = 1;
+                AQM_ENABLED = 1; // reset the flag
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA: " << getBeta() << "-------");
                 NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED << "-------");
@@ -386,6 +387,8 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
         cwnd_streams.push_back(stream);
     }
 }
+
+// check if all flows has finished sending 'bytes_to_send' data
 void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 {
   int totCount = 0;
@@ -416,10 +419,8 @@ int main(int argc, char *argv[]) {
     std::string queueSize = "1p";
     std::string tc_queueSize = "2083p";
     std::string RTT = "198ms"; // round-trip time of each TCP flow
-    std::string bottleneck_bandwidth =
-        "100Mbps"; // bandwidth of the bottleneck link
-    std::string bottleneck_delay =
-        "1ms"; // bottleneck link has negligible propagation delay
+    std::string bottleneck_bandwidth = "100Mbps"; // bandwidth of the bottleneck link
+    std::string bottleneck_delay = "1ms"; // bottleneck link has negligible propagation delay
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
     std::string qsize_trace_filename = "qsizeTrace-dumbbell";
@@ -464,7 +465,6 @@ int main(int argc, char *argv[]) {
       Config::SetDefault ("ns3::RedQueueDisc::Gentle", BooleanValue (false));
 
       // set min and max qth
-      int _qth = std::stod(tc_queueSize.substr(0, tc_queueSize.length() - 1));
       int minTh = 50;
       int maxTh = 100;
       NS_LOG_UNCOND("minTh: "<<minTh);
@@ -572,6 +572,7 @@ int main(int argc, char *argv[]) {
     InternetStackHelper stack;
     stack.InstallAll(); // install internet stack on all nodes
 
+    /////////////////////////////////////////////////////
     /////////////// Traffic Controller //////////////////
     // Remove any existing queue disc that might be installed
     for (NetDeviceContainer::Iterator i = r1r2ND.Begin(); i != r1r2ND.End();
