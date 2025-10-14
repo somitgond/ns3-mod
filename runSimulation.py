@@ -1,5 +1,5 @@
-# author: Somit Gond
-# date: 02/04/2025
+# Initial Author: Somit Gond
+# Date: 02/04/2025
 
 """
 This file is used to simulate ns3 script and find global sync threshold
