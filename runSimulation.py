@@ -50,14 +50,14 @@ if __name__ == "__main__":
     src_path = "result-clientServerRouter"
     folder_path = src_path + "/"
     dst_path = "results"
-    number_of_simulations = 10
+    number_of_simulations = 31
     # run simulation with different random seeds, if set to 1 
     enable_random_seed_simulation = 0
     random_seeds = [ 69713, 56629, 86799, 42653, 82842, 72958, 23256,
                     14590, 98472, 8288]
     RTTs = []
     for i in range(number_of_simulations):
-        RTTs.append((5 * i) + 198)
+        RTTs.append((5 * i) + 148)
 
     # required queue disc
     aqm_policy = ["aqm", "codel", "droptail", "red"]
