@@ -50,7 +50,7 @@ bool AQM_ENABLED = 0; // 0: if we want to run our aqm, 1: don't run our aqm
 // to store parameters
 Ptr<OutputStreamWrapper> parameters;
 
-std::vector<uint32_t> cwnd(nNodes + 1, 0);
+std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 Ptr<OutputStreamWrapper> rtts;
 
@@ -284,12 +284,16 @@ std::vector<double> dropCounts;
 double sumWin = 0;
 
 void initiateArray() {
-    betas = std::vector<double>(nNodes + 1, 0.5);
-    countBeta = std::vector<double>(nNodes + 1, 0);
-    dipStarted = std::vector<bool>(nNodes + 1, false);
-    highs = std::vector<double>(nNodes + 1, 0);
-    prevWin = std::vector<double>(nNodes + 1, 0);
-    dropCounts = std::vector<double>(nNodes + 1, 0);
+  n_tcp_flows = std::round(nNodes * 0.7);
+  n_udp_flows = std::round(nNodes * 0.2);
+  n_short_tcp_flows = nNodes - (n_tcp_flows + n_udp_flows);
+  cwnd = std::vector<uint32_t>(nNodes + 1, 0);
+  betas = std::vector<double>(nNodes + 1, 0.5);
+  countBeta = std::vector<double>(nNodes + 1, 0);
+  dipStarted = std::vector<bool>(nNodes + 1, false);
+  highs = std::vector<double>(nNodes + 1, 0);
+  prevWin = std::vector<double>(nNodes + 1, 0);
+  dropCounts = std::vector<double>(nNodes + 1, 0);
 }
 
 double getBeta() {
@@ -418,7 +422,6 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 }
 
 int main(int argc, char *argv[]) {
-    initiateArray();
     uint32_t del_ack_count = 2;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
@@ -452,6 +455,7 @@ int main(int argc, char *argv[]) {
 
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
+    NS_LOG_UNCOND("nNodes : " << nNodes);
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue Disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
@@ -489,6 +493,7 @@ int main(int argc, char *argv[]) {
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
     
+    initiateArray();
     // creating a directory to save results
     struct stat buffer;
     [[maybe_unused]] int retVal;
@@ -626,7 +631,7 @@ int main(int argc, char *argv[]) {
 
     /////////////////// Traffic Mixing //////////////////////////////
 
-    NS_LOG_UNCOND("tcp: "<<n_tcp_flows<<" udp: "<<n_udp_flows<<" short lived: "<<n_short_tcp_flows);
+    NS_LOG_UNCOND("tcp: "<<n_tcp_flows<<", udp: "<<n_udp_flows<<", short lived: "<<n_short_tcp_flows);
 
     uint16_t port = 50000;
     Address sinkAddress[nNodes];
@@ -696,13 +701,14 @@ int main(int argc, char *argv[]) {
         "ns3::UdpSocketFactory",
         InetSocketAddress(Ipv4Address::GetAny(), port));
 
+    stime = start_time;
     // start udp flowd
     for (uint32_t i = n_tcp_flows; i < n_tcp_flows+n_udp_flows; i++) {
         // packet sink
         sinkAddress[i] =
             *(new Address(InetSocketAddress(rIp[i].GetAddress(0), port)));
         sinkApp[i] = packetSinkHelper_udp.Install(nodes.Get(2 + nNodes + i));
-        sinkApp[i].Start(Seconds(start_time));
+        sinkApp[i].Start(Seconds(stime));
         sinkApp[i].Stop(Seconds(stop_time));
 
         // source installtion
@@ -817,15 +823,15 @@ int main(int argc, char *argv[]) {
         ascii_dropped.CreateFileStream(dir + dropped_trace_filename + ".txt");
     // start tracing the congestion window size and qSize
 
-    Simulator::Schedule(Seconds(stime), &start_tracing_timeCwnd, nNodes);
-    Simulator::Schedule(Seconds(stime), &StartTracingQueueSize);
-    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket);
-    Simulator::Schedule(Seconds(stime), &updateCwndValues, nNodes);
+    Simulator::Schedule(Seconds(stime+start_tracing_time), &start_tracing_timeCwnd, nNodes);
+    Simulator::Schedule(Seconds(stime+start_tracing_time), &StartTracingQueueSize);
+    Simulator::Schedule(Seconds(stime+start_tracing_time), &StartTracingTransmitedPacket);
+    Simulator::Schedule(Seconds(stime+start_tracing_time), &updateCwndValues, nNodes);
     //    Simulator::Schedule( Seconds(stime+start_tracing_time),
     //    &writeCwndToFile, nNodes);
 
     // start tracing Queue Size and Dropped Files
-    Simulator::Schedule(Seconds(stime), &TraceDroppedPacket,
+    Simulator::Schedule(Seconds(stime+start_tracing_time), &TraceDroppedPacket,
                         dropped_trace_filename);
     // writing the congestion windows size, queue_size, packetTx to files
     // periodically ( 1 sec. )
