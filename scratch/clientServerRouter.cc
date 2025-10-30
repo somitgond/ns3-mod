@@ -50,7 +50,7 @@ bool AQM_ENABLED = 0; // 0: if we want to run our aqm, 1: don't run our aqm
 // store parameters in a file
 Ptr<OutputStreamWrapper> parameters;
 
-std::vector<uint32_t> cwnd(nNodes + 1, 0);
+std::vector<uint32_t> cwnd;
 std::vector<Ptr<OutputStreamWrapper>> cwnd_streams;
 Ptr<OutputStreamWrapper> rtts;
 
@@ -76,7 +76,7 @@ uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
 Ptr<OutputStreamWrapper> zc_stream;
 
-std::vector<uint64_t> clientBytes (nNodes, 0);
+std::vector<uint64_t> clientBytes;
 
 void TxTrace (uint32_t clientId, Ptr<const Packet> p)
 {
@@ -279,6 +279,8 @@ std::vector<double> dropCounts;
 double sumWin = 0;
 
 void initiateArray() {
+    cwnd = std::vector<uint32_t>(nNodes+1, 0);
+    clientBytes = std::vector<uint64_t>(nNodes, 0);
     betas = std::vector<double>(nNodes + 1, 0.5);
     countBeta = std::vector<double>(nNodes + 1, 0);
     dipStarted = std::vector<bool>(nNodes + 1, false);
@@ -412,7 +414,6 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 
 
 int main(int argc, char *argv[]) {
-    initiateArray();
     uint32_t del_ack_count = 1;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
@@ -446,6 +447,7 @@ int main(int argc, char *argv[]) {
     
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
+    NS_LOG_UNCOND("nNodes : " << nNodes);
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
@@ -482,6 +484,7 @@ int main(int argc, char *argv[]) {
     Config::SetDefault (queue_disc + "::MaxSize", QueueSizeValue (QueueSize (tc_queueSize)));
     // Config::SetDefault("ns3::TcpSocketBase::MaxWindowSize", UintegerValue(20 * 1000));
 
+    initiateArray();
     // creating a directory to save results
     struct stat buffer;
     [[maybe_unused]] int retVal;
