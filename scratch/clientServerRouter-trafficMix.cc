@@ -354,7 +354,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                     << " w* : " << sumWin/(nNodes - n_udp_flows) << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
-                // AQM_ENABLED = 1;
+                AQM_ENABLED = 1;
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA---------!!" << getBeta());
                 zerocrossings_data.clear(); // clear zero crossing data after aqm trigger
