@@ -651,6 +651,7 @@ int main(int argc, char *argv[]) {
     expRandomVariable->SetAttribute("Bound", DoubleValue(bound));
 
     double stime = start_time;
+
     // Configuring the application at each source node.
     for (uint32_t i = 0; i < nNodes; i++) {
         BulkSendHelper tmp_source( "ns3::TcpSocketFactory",
@@ -666,6 +667,7 @@ int main(int argc, char *argv[]) {
 
         stime += gap;
     }
+
     // tracing total data sent in bulksend
     if(bytes_to_send > 0)
     {
@@ -742,6 +744,14 @@ int main(int argc, char *argv[]) {
       // enable trace between two router links
       // enable promiscous mode
       p2p_router.EnablePcap(dir + "/router-0" , r1r2ND.Get(0), true );
+
+      // for all sources nodes, generate pcap at source router
+      for(int i = 0; i < leftND.size(); i++)
+      {
+        // client nodes
+        // p2p_s[i].EnablePcap(dir + "/sourceNode-" + std::to_string(i), leftND[i].Get(0), true );
+        p2p_s[i].EnablePcap(dir + "/sourceNode-" + std::to_string(i), leftND[i].Get(1), true );
+      }
     }
 
     // Check for dropped packets using Flow Monitor
