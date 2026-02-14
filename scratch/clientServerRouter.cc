@@ -437,6 +437,7 @@ int main(int argc, char *argv[]) {
     float start_time = 0;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
+    bool enable_bot_pcap = 0;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nNodes", "Number of nodes in right and left", nNodes);
@@ -504,8 +505,10 @@ int main(int argc, char *argv[]) {
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
     nodes.Create(2 + nNodes * 2);
+
     // Source nodes
     NodeContainer leftNodes[nNodes];
+
     // Destination nodes
     NodeContainer rightNodes[nNodes];
 
@@ -516,6 +519,7 @@ int main(int argc, char *argv[]) {
         leftNodes[i] = NodeContainer(nodes.Get(i + 2), nodes.Get(0));
         rightNodes[i] = NodeContainer(nodes.Get(2 + nNodes + i), nodes.Get(1));
     }
+
     // write RTT
     AsciiTraceHelper rtt_helper;
     rtts = rtt_helper.CreateFileStream(dir + rttFileName + ".txt");
@@ -579,8 +583,7 @@ int main(int argc, char *argv[]) {
     /////////////////////////////////////////////////////
     /////////////// Traffic Controller //////////////////
     // Remove any existing queue disc that might be installed
-    for (NetDeviceContainer::Iterator i = r1r2ND.Begin(); i != r1r2ND.End();
-         ++i) {
+    for (NetDeviceContainer::Iterator i = r1r2ND.Begin(); i != r1r2ND.End(); ++i) {
         Ptr<NetDevice> device = *i;
         Ptr<TrafficControlLayer> tcLayer =
             device->GetNode()->GetObject<TrafficControlLayer>();
@@ -732,9 +735,13 @@ int main(int argc, char *argv[]) {
 
     if (enable_bot_trace == 1) {
         AsciiTraceHelper bottleneck_ascii;
-        p2p_router.EnableAscii(bottleneck_ascii.CreateFileStream(
-                                   dir + "bottleneck-trace-router0.tr"),
-                               leftND[0]);
+        p2p_router.EnableAscii(bottleneck_ascii.CreateFileStream(dir + "bottleneck-trace-router0.tr"), r1r2ND.Get(0));
+    }
+
+    if(enable_bot_pcap == 1) {
+      // enable trace between two router links
+      // enable promiscous mode
+      p2p_router.EnablePcap(dir + "/router-0" , r1r2ND.Get(0), true );
     }
 
     // Check for dropped packets using Flow Monitor
