@@ -750,7 +750,7 @@ int main(int argc, char *argv[]) {
       {
         // client nodes
         // p2p_s[i].EnablePcap(dir + "/sourceNode-" + std::to_string(i), leftND[i].Get(0), true );
-        p2p_s[i].EnablePcap(dir + "/sourceNode-" + std::to_string(i), leftND[i].Get(1), true );
+        p2p_s[i].EnablePcap(dir + "/sourceNode", leftND[i].Get(1), true );
       }
     }
 
