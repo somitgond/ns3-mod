@@ -36,7 +36,7 @@ NS_LOG_COMPONENT_DEFINE("TCPSCRIPT");
 std::string dir = "result-clientServerRouter/";
 uint32_t prev = 0;
 Time prevTime = Seconds(0);
-uint32_t segmentSize = 1400; // segment size 
+uint32_t segmentSize = 1400; // segment size
 double segSize = segmentSize;
 uint32_t threshold = 10;
 uint32_t increment = 100;
@@ -70,7 +70,7 @@ Ptr<QueueDisc> queueDisc_router = CreateObject<FifoQueueDisc>();
 // find zero crossings in autocorrelation in queue data
 uint32_t Q_WINDOW = 50;
 // zero crossing threshold, determined after doing experimentation with different queue size
-uint32_t ZC_THRE = 5; 
+uint32_t ZC_THRE = 5;
 std::vector<double> qSizeData(Q_WINDOW);
 uint32_t numOfObs = 0;
 std::vector<double> zerocrossings_data;
@@ -206,8 +206,8 @@ static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p) {
     droppedPackets++;
 }
 
-static void TxPacket(Ptr<const Packet> p) { 
-  bottleneckTransimittedBytes += p->GetSize(); 
+static void TxPacket(Ptr<const Packet> p) {
+  bottleneckTransimittedBytes += p->GetSize();
 }
 
 static void TraceDroppedPacket(std::string dropped_trace_filename) {
@@ -345,7 +345,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
                 (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth);
-                *parameters->GetStream() << "AQM triggered with qth: " <<qth 
+                *parameters->GetStream() << "AQM triggered with qth: " <<qth
                     << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
@@ -445,7 +445,7 @@ int main(int argc, char *argv[]) {
     cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
     cmd.AddValue("AQM_ENABLED", "To enable aqm or not", AQM_ENABLED);
-    
+
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("nNodes : " << nNodes);
@@ -455,12 +455,12 @@ int main(int argc, char *argv[]) {
     NS_LOG_UNCOND("AQM_ENABLED: " << AQM_ENABLED);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
-    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304)); 
+    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304));
     // Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (6291456));
     Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(initial_cwnd));
     Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(del_ack_count));
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(segmentSize));
-    // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p"))); 
+    // Config::SetDefault ("ns3::DropTailQueue<Packet>::MaxSize", QueueSizeValue (QueueSize ("1p")));
 
     // set traffic control queue size according to queue disc
     if (queue_disc == "ns3::RedQueueDisc")
@@ -475,7 +475,7 @@ int main(int argc, char *argv[]) {
       NS_LOG_UNCOND("maxTh: "<<maxTh);
       Config::SetDefault ("ns3::RedQueueDisc::MinTh", DoubleValue (minTh));
       Config::SetDefault ("ns3::RedQueueDisc::MaxTh", DoubleValue (maxTh));
-      
+
       Config::SetDefault ("ns3::RedQueueDisc::LinkBandwidth", StringValue (bottleneck_bandwidth));
       Config::SetDefault ("ns3::RedQueueDisc::LinkDelay", StringValue (bottleneck_delay));
 
@@ -498,10 +498,10 @@ int main(int argc, char *argv[]) {
     std::string dirToSave = "mkdir -p " + dir;
     retVal = system(dirToSave.c_str());
     NS_ASSERT_MSG(retVal == 0, "Error in return value");
-    
+
     AsciiTraceHelper ascii_zc;
     zc_stream = ascii_zc.CreateFileStream(dir + zc_trace_filename + ".txt");
-    
+
     // two for router and nNodes on left and right of bottleneck
     NodeContainer nodes;
     nodes.Create(2 + nNodes * 2);
@@ -528,12 +528,12 @@ int main(int argc, char *argv[]) {
     // Defining the links to be used between nodes
     double min = double(std::stoi(RTT.substr(0, RTT.length() - 2))) - 10;
     double max = double(std::stoi(RTT.substr(0, RTT.length() - 2))) + 10;
-    
+
     // assigning tao and capacity
     rtt_global = std::stod(RTT.substr(0, RTT.length() - 2)) + 2; // 2 for bottleneck link
     giveQth(1, 1, 1);
     NS_LOG_UNCOND("limit: "<<cap <<" "<< Tao);
-    
+
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
     x->SetAttribute("Min", DoubleValue(min));
     x->SetAttribute("Max", DoubleValue(max));
@@ -600,7 +600,7 @@ int main(int argc, char *argv[]) {
     QueueDiscContainer queueDiscs = tch.Install(r1r2ND.Get(0));
     Ptr<QueueDisc> queueDisc = queueDiscs.Get(0);
     queueDisc_router = queueDiscs.Get(0);
-    
+
     // setting Queue size to 1
     //SetQueueSize(2048);
 
@@ -743,7 +743,7 @@ int main(int argc, char *argv[]) {
     if(enable_bot_pcap == 1) {
       // enable trace between two router links
       // enable promiscous mode
-      p2p_router.EnablePcap(dir + "/router-0" , r1r2ND.Get(0), true );
+      // p2p_router.EnablePcap(dir + "/router-0" , r1r2ND.Get(0), true );
 
       // for all sources nodes, generate pcap at source router
       for(int i = 0; i < leftND.size(); i++)
