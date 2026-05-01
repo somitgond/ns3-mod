@@ -410,8 +410,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                 zerocrossings_data.clear(); // clear zero crossing data after aqm is enabled
             }
         }
-#endif
     }
+#endif
 
     cwnd[node] = newval / segmentSize;
     //    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () <<
