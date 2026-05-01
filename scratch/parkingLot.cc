@@ -382,6 +382,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int qth = 0;
 #endif
 
+#if 0
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
@@ -409,6 +410,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
                 zerocrossings_data.clear(); // clear zero crossing data after aqm is enabled
             }
         }
+#endif
     }
 
     cwnd[node] = newval / segmentSize;
@@ -466,7 +468,8 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 }
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     uint32_t del_ack_count = 1;
     uint32_t cleanup_time = 2;
     uint32_t initial_cwnd = 10;
@@ -776,8 +779,8 @@ int main(int argc, char *argv[]) {
     Ptr<QueueDisc> queueDisc2 = queueDiscs2.Get(0);
 
     // push queue discpline in vector
-    queueDiscV.push_back(queueDiscs1.Get(0));
-    queueDiscV.push_back(queueDiscs2.Get(0));
+    queueDiscV[Q_FIRST] = queueDiscs1.Get(0);
+    queueDiscV[Q_SECOND] = queueDiscs2.Get(0);
 
     // setting Queue size to 1
     //SetQueueSize(2048);
@@ -985,6 +988,7 @@ int main(int argc, char *argv[]) {
         // enable trace between two router links
         // enable promiscous mode
         p2p_router1.EnablePcap(dir + "/router-0" , r1r2ND.Get(0), true );
+        p2p_router2.EnablePcap(dir + "/router-1" , r2r3ND.Get(0), true );
     }
 
     // Check for dropped packets using Flow Monitor
