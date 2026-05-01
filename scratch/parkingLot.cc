@@ -328,14 +328,14 @@ std::vector<double> dropCounts;
 double sumWin = 0;
 
 void initiateArray() {
-    cwnd = std::vector<uint32_t>(nNodes+1, 0);
-    clientBytes = std::vector<uint64_t>(nNodes, 0);
-    betas = std::vector<double>(nNodes + 1, 0.5);
-    countBeta = std::vector<double>(nNodes + 1, 0);
-    dipStarted = std::vector<bool>(nNodes + 1, false);
-    highs = std::vector<double>(nNodes + 1, 0);
-    prevWin = std::vector<double>(nNodes + 1, 0);
-    dropCounts = std::vector<double>(nNodes + 1, 0);
+    cwnd = std::vector<uint32_t>(totalSourceNodes+1, 0);
+    clientBytes = std::vector<uint64_t>(totalSourceNodes+1, 0);
+    betas = std::vector<double>(totalSourceNodes+1, 0.5);
+    countBeta = std::vector<double>(totalSourceNodes+1, 0);
+    dipStarted = std::vector<bool>(totalSourceNodes+1, false);
+    highs = std::vector<double>(totalSourceNodes+1, 0);
+    prevWin = std::vector<double>(totalSourceNodes+1, 0);
+    dropCounts = std::vector<double>(totalSourceNodes+1, 0);
 }
 
 double getBeta() {
@@ -353,6 +353,7 @@ double getBeta() {
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     double oldVal = (double)oldval / segSize;
+#if 0
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
     if (newval < oldval) {
@@ -382,7 +383,6 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         int qth = 0;
 #endif
 
-#if 0
         // zero crossings data is greater than 3
         int temp_len = zerocrossings_data.size();
         auto t_gp = getBeta();
