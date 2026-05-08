@@ -311,6 +311,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         dropCounts[node] += 1;
     }
 
+#if 0
     // NS_LOG_UNCOND("old and new: " << oldVal << " "<<newVal);
     if (!dipStarted[node] && (oldval > newval)) {
         dipStarted[node] = true;
@@ -357,6 +358,32 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             }
         }
     }
+#else
+
+    int temp_len = zerocrossings_data.size();
+    if (temp_len >= 3)
+    {
+        double beta = 0.48;
+        int qth = giveQth(sumWin / nNodes, beta, 2084);
+        // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+        // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
+        auto ta = zerocrossings_data[temp_len - 1];
+        auto tb = zerocrossings_data[temp_len - 2];
+        auto tc = zerocrossings_data[temp_len - 3];
+        if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+        // AQM will be triggered only once
+        if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
+                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+            SetQueueSize(qth);
+            *parameters->GetStream() << "AQM triggered with qth: " <<qth
+                << " w* : " << sumWin/nNodes << " beta: "<< beta << std::endl;
+            *zc_stream->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
+            AQM_ENABLED = 1; // reset the flag
+            NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED << "-------");
+            zerocrossings_data.clear(); // clear zero crossing data after aqm is enabled
+        }
+    }
+#endif
 
     cwnd[node] = newval / segmentSize;
     //    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () <<
@@ -367,7 +394,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 static void updateCwndValues(uint32_t nNodes) {
     for (uint32_t i = 0; i < nNodes; i++) {
         std::string path = "/NodeList/" + std::to_string(i + 2) +
-                           "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+            "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
         Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
     }
 }
