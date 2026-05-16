@@ -313,6 +313,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     double oldVal = (double)oldval / segSize;
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
+#if 0
     if (newval < oldval) {
         dropCounts[node] += 1;
     }
@@ -361,6 +362,34 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             }
         }
     }
+#else
+    if ((Simulator::Now().GetSeconds() > 100) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc") && zerocrossings_data.size() > 2)
+    {
+      int temp_len = zerocrossings_data.size();
+      auto ta = zerocrossings_data[temp_len - 1];
+      auto tb = zerocrossings_data[temp_len - 2];
+      auto tc = zerocrossings_data[temp_len - 3];
+
+      if ((ta < ZC_THRE) && (tb < ZC_THRE) && (tc < ZC_THRE)) {
+
+        double beta = 0.455;
+        int qth = giveQth(sumWin / (nNodes - n_udp_flows), beta, 2084);
+        if(qth >= 2084)std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+        if (qth > 0 && qth < 2084) {
+          // AQM will be triggered only once
+          SetQueueSize(qth);
+          *parameters->GetStream() << "AQM triggered with qth: " <<qth 
+            << " w* : " << sumWin/(nNodes - n_udp_flows) << " beta: "<<beta<< std::endl;
+          *zc_stream->GetStream()
+            << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
+          AQM_ENABLED = 1;
+          NS_LOG_UNCOND("----------------------DONE!!");
+          NS_LOG_UNCOND("--------BETA---------!!" << beta);
+          zerocrossings_data.clear(); // clear zero crossing data after aqm trigger
+        }
+      }
+    }
+#endif
 
     cwnd[node] = newval / segmentSize;
     //    *cwnd_streams[node]->GetStream() << Simulator::Now ().GetSeconds () <<
