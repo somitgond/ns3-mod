@@ -54,6 +54,8 @@
 
 using namespace ns3;
 
+// number of queues of interest
+const int numOfQueue = 2;
 enum QueueNum
 {
     Q_FIRST = 0,
@@ -75,7 +77,7 @@ uint32_t bytes_to_send = 100000000;                    // 0 for unbounded
 double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
-bool AQM_ENABLED = 0; // 0: if we want to run our aqm, 1: don't run our aqm
+std::vector<bool> AQM_ENABLED(numOfQueue, 0); // 0: if we want to run our aqm, 1: don't run our aqm
 
 // store parameters in a file
 Ptr<OutputStreamWrapper> parameters;
@@ -102,10 +104,10 @@ std::vector<Ptr<QueueDisc>> queueDiscV(2, CreateObject<FifoQueueDisc>());
 uint32_t Q_WINDOW = 50;
 // zero crossing threshold, determined after doing experimentation with different queue size
 uint32_t ZC_THRE = 5;
-std::vector<double> qSizeData(Q_WINDOW);
+std::vector<std::vector<double>> qSizeData(numOfQueue, std::vector<double>(Q_WINDOW));
 uint32_t numOfObs = 0;
-std::vector<double> zerocrossings_data;
-Ptr<OutputStreamWrapper> zc_stream;
+std::vector<std::vector<double>> zerocrossings_data(numOfQueue, std::vector<double>());
+std::vector<Ptr<OutputStreamWrapper>> zc_stream(numOfQueue);
 
 std::vector<uint64_t> clientBytes;
 
@@ -221,16 +223,16 @@ void TraceQueueSizeTc(int queueIdx) {
         << Simulator::Now().GetSeconds() << " "
         << queueDiscV[queueIdx]->GetCurrentSize().GetValue() << std::endl;
 
-    // FIXME: based on queue index fill zc values
     // check zero crossings
     if ((numOfObs != 0) && (numOfObs % Q_WINDOW == 0)) {
-        std::vector<double> autocorr = fullAutocorrelation(qSizeData);
+        std::vector<double> autocorr = fullAutocorrelation(qSizeData[queueIdx]);
         auto zc_val = countZeroCrossings(autocorr);
-        zerocrossings_data.push_back(zc_val);
-        *zc_stream->GetStream()
-            << Simulator::Now().GetSeconds() << " " << zc_val << std::endl;
+        zerocrossings_data[queueIdx].push_back(zc_val);
+
+        *(zc_stream[queueIdx])->GetStream() << Simulator::Now().GetSeconds() << " " << zc_val << std::endl;
     }
-    qSizeData[numOfObs % Q_WINDOW] = queueDiscV[queueIdx]->GetCurrentSize().GetValue() + 1;
+    // add 1 as we are setting initial queue as size 1
+    qSizeData[queueIdx][numOfObs % Q_WINDOW] = queueDiscV[queueIdx]->GetCurrentSize().GetValue() + 1;
     numOfObs++;
 }
 
@@ -353,9 +355,9 @@ double getBeta() {
 // Trace congestion window
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     double oldVal = (double)oldval / segSize;
-#if 0
     sumWin += (oldVal - prevWin[node]); prevWin[node] = oldVal;
 
+#if 0
     if (newval < oldval) {
         // loss_events[node] = 1;
         dropCounts[node] += 1;
@@ -411,6 +413,64 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             }
         }
     }
+#else
+
+    // for queue 1
+    auto queueIdx = Q_FIRST;
+    int temp_len = zerocrossings_data[queueIdx].size();
+    if (temp_len >= 3)
+    {
+        double beta = 0.48;
+        // FIXME: sumWin for each queue 
+        int qth = giveQth(sumWin / nNodes, beta, 2084);
+        // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+        // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
+        auto ta = zerocrossings_data[queueIdx][temp_len - 1];
+        auto tb = zerocrossings_data[queueIdx][temp_len - 2];
+        auto tc = zerocrossings_data[queueIdx][temp_len - 3];
+        if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+        // AQM will be triggered only once
+        if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
+                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+            SetQueueSize(qth, queueIdx);
+            *parameters->GetStream() << "AQM triggered with qth: " <<qth << 
+              " w* : " << sumWin/nNodes << " beta: "<< beta << std::endl;
+
+            *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
+
+            AQM_ENABLED[queueIdx] = 1; // reset the flag
+            NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED[queueIdx] << "-------");
+
+            zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
+        }
+    }
+
+    // for queue 1
+    queueIdx = Q_SECOND;
+    temp_len = zerocrossings_data[queueIdx].size();
+    if (temp_len >= 3)
+    {
+        double beta = 0.48;
+        // FIXME: sumWin for each queue 
+        int qth = giveQth(sumWin / nNodes, beta, 2084);
+        // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
+        // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
+        auto ta = zerocrossings_data[queueIdx][temp_len - 1];
+        auto tb = zerocrossings_data[queueIdx][temp_len - 2];
+        auto tc = zerocrossings_data[queueIdx][temp_len - 3];
+        if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
+        // AQM will be triggered only once
+        if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
+                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+            SetQueueSize(qth, queueIdx);
+            *parameters->GetStream() << "AQM triggered with qth: " <<qth
+                << " w* : " << sumWin/nNodes << " beta: "<< beta << std::endl;
+            *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
+            AQM_ENABLED[queueIdx] = 1; // reset the flag
+            NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED[queueIdx] << "-------");
+            zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
+        }
+    }
 #endif
 
     cwnd[node] = newval / segmentSize;
@@ -421,8 +481,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 // Update values as cwndChanges
 static void updateCwndValues(uint32_t nodes) {
     for (uint32_t i = 0; i < nodes; i++) {
-        std::string path = "/NodeList/" + std::to_string(i + 3) +
-            "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+        std::string path = "/NodeList/" + std::to_string(i + 3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
         Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
     }
 }
@@ -430,8 +489,7 @@ static void updateCwndValues(uint32_t nodes) {
 // Write to congestion window streams
 static void writeCwndToFile(uint32_t nodes) {
     for (uint32_t i = 0; i < nodes; i++) {
-        *cwnd_streams[i]->GetStream()
-            << Simulator::Now().GetSeconds() << " " << cwnd[i] << std::endl;
+        *cwnd_streams[i]->GetStream() << Simulator::Now().GetSeconds() << " " << cwnd[i] << std::endl;
     }
 }
 
@@ -503,7 +561,13 @@ int main(int argc, char *argv[])
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
-    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", AQM_ENABLED);
+    int aqm_enabled = 0;
+    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", aqm_enabled);
+
+    if(aqm_enabled)
+    {
+      for(auto& b: AQM_ENABLED) b = 1;
+    }
 
     cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
@@ -511,7 +575,7 @@ int main(int argc, char *argv[])
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
-    NS_LOG_UNCOND("AQM_ENABLED: " << AQM_ENABLED);
+    NS_LOG_UNCOND("AQM_ENABLED: " << aqm_enabled);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304));
@@ -560,8 +624,9 @@ int main(int argc, char *argv[])
     retVal = system(dirToSave.c_str());
     NS_ASSERT_MSG(retVal == 0, "Error in return value");
 
-    AsciiTraceHelper ascii_zc;
-    zc_stream = ascii_zc.CreateFileStream(dir + zc_trace_filename + ".txt");
+    AsciiTraceHelper ascii_zc1, ascii_zc2;
+    zc_stream[Q_FIRST] = ascii_zc1.CreateFileStream(dir + zc_trace_filename + "-1.txt");
+    zc_stream[Q_SECOND] = ascii_zc2.CreateFileStream(dir + zc_trace_filename + "-2.txt");
 
     NS_LOG_UNCOND("Creating NodeContainers");
     // two for router and nNodes on left and right of bottleneck
