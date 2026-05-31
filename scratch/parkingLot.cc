@@ -450,10 +450,13 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             *parameters->GetStream() << "AQM triggered with qth: " <<qth << 
               " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
 
+	    std::cout<< "AQM triggered with qth: " <<qth
+                << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
+
             *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
 
             AQM_ENABLED[queueIdx] = 1; // reset the flag
-            NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED[queueIdx] << "-------");
+            NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
 
             zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
         }
@@ -478,9 +481,11 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             SetQueueSize(qth, queueIdx);
             *parameters->GetStream() << "AQM triggered with qth: " <<qth
                 << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
+	    std::cout<< "AQM triggered with qth: " <<qth
+                << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
             *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
             AQM_ENABLED[queueIdx] = 1; // reset the flag
-            NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED[queueIdx] << "-------");
+            NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
             zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
         }
     }
