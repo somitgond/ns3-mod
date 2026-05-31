@@ -566,7 +566,7 @@ int main(int argc, char *argv[])
 
     if(aqm_enabled)
     {
-      for(auto& b: AQM_ENABLED) b = 1;
+      for(int i = 0; i < AQM_ENABLED.size(); i++) AQM_ENABLED[i] = 1;
     }
 
     cmd.Parse(argc, argv);
