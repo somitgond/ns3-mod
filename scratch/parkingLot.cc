@@ -100,6 +100,8 @@ Ptr<OutputStreamWrapper> dropped_stream;
 // vector containing queue discs
 std::vector<Ptr<QueueDisc>> queueDiscV(2, CreateObject<FifoQueueDisc>());
 
+std::vector<double> betaV = {0.48, 0.48};
+
 // find zero crossings in autocorrelation in queue data
 uint32_t Q_WINDOW = 50;
 // zero crossing threshold, determined after doing experimentation with different queue size
@@ -429,13 +431,15 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         }
     }
 #else
-
-    // for queue 1
-    auto queueIdx = Q_FIRST;
-    int temp_len = zerocrossings_data[queueIdx].size();
-    if (temp_len >= 3)
+    // depening on queue 
+    for(int i = 0; i < numOfQueue; i++)
     {
-        double beta = 0.48;
+      // for queue 1
+      auto queueIdx = static_cast<QueueNum>(i);
+      int temp_len = zerocrossings_data[queueIdx].size();
+      if (temp_len >= 3)
+      {
+        double beta = betaV[queueIdx];
         int qth = giveQth(sumWin[queueIdx] / nNodes, beta, 2084);
         // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
         // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
@@ -445,49 +449,22 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
         // AQM will be triggered only once
         if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
-                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
-            SetQueueSize(qth, queueIdx);
-            *parameters->GetStream() << "AQM triggered with qth: " <<qth << 
-              " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
+            (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+          SetQueueSize(qth, queueIdx);
+          *parameters->GetStream() << "AQM triggered with qth: " <<qth << 
+            " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
 
-	    std::cout<< "AQM triggered with qth: " <<qth
-                << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
+          std::cout<< "AQM triggered with qth: " <<qth
+            << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
 
-            *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
+          *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
 
-            AQM_ENABLED[queueIdx] = 1; // reset the flag
-            NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
+          AQM_ENABLED[queueIdx] = 1; // reset the flag
+          NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
 
-            zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
+          zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
         }
-    }
-
-    // for queue 2
-    queueIdx = Q_SECOND;
-    temp_len = zerocrossings_data[queueIdx].size();
-    if (temp_len >= 3)
-    {
-        double beta = 0.48;
-        int qth = giveQth(sumWin[queueIdx] / nNodes, beta, 2084);
-        // NS_LOG_UNCOND("w*: "<<(sumWin / nNodes)<<" limit: "<<(cap * Tao));
-        // NS_LOG_UNCOND("t_gp: "<<t_gp<<" qTh: "<<qth<<" tempLen: "<<temp_len);
-        auto ta = zerocrossings_data[queueIdx][temp_len - 1];
-        auto tb = zerocrossings_data[queueIdx][temp_len - 2];
-        auto tc = zerocrossings_data[queueIdx][temp_len - 3];
-        if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
-        // AQM will be triggered only once
-        if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
-                (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
-            SetQueueSize(qth, queueIdx);
-            *parameters->GetStream() << "AQM triggered with qth: " <<qth
-                << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
-	    std::cout<< "AQM triggered with qth: " <<qth
-                << " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
-            *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
-            AQM_ENABLED[queueIdx] = 1; // reset the flag
-            NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
-            zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
-        }
+      }
     }
 #endif
 
