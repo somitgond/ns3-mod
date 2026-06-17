@@ -285,9 +285,7 @@ static void TraceDroppedPkts() {
 }
 
 static void TraceBottleneckTx() {
-    *bottleneckTransimittedStream->GetStream()
-        << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimittedBytes
-        << std::endl;
+    *bottleneckTransimittedStream->GetStream() << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimittedBytes << std::endl;
 }
 
 void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
@@ -312,10 +310,8 @@ static void StartTracingQueueSize(int queueIdx) {
 }
 
 static void StartTracingTransmitedPacket() {
-    bottleneckTransimittedBytes = 0;
-    Config::ConnectWithoutContext(
-            "/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd",
-            MakeCallback(&TxPacket));
+  bottleneckTransimittedBytes = 0; // FIXME: depending on queue trace different packets
+    Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeCallback(&TxPacket));
 }
 
 
@@ -733,7 +729,7 @@ int main(int argc, char *argv[])
     PointToPointHelper p2p_s1[nNodes], p2p_s2[nNodes], p2p_s3[nNodes];
     PointToPointHelper p2p_d1[nNodes], p2p_d2[nNodes], p2p_d3[nNodes];
 
-    for (uint32_t i = 0; i < nNodes; i++) {
+    for (uint32_t i = 0; i < nNodes; i++) { // FIXME: what the heck is RTT for each flow?
         double delay = (x->GetValue()) / 4;
         std::string delay_str = std::to_string(delay) + "ms";
 
@@ -1035,8 +1031,8 @@ int main(int argc, char *argv[])
         Simulator::Schedule(Seconds(time), &TraceQueueSizeTc, Q_SECOND);
         Simulator::Schedule(Seconds(time), &TraceQueueSize, Q_FIRST);
         Simulator::Schedule(Seconds(time), &TraceQueueSize, Q_SECOND);
-        Simulator::Schedule(Seconds(time), &TraceBottleneckTx);
-        Simulator::Schedule(Seconds(time), &TraceDroppedPkts);
+        Simulator::Schedule(Seconds(time), &TraceBottleneckTx); // FIXME: give Q type also
+        Simulator::Schedule(Seconds(time), &TraceDroppedPkts); // FIXME: not using this for now, but might need it in future
     }
 
     if (enable_bot_trace == 1) {
