@@ -91,8 +91,8 @@ std::vector<uint64_t> queue_sizeV(2, 0);
 std::vector<Ptr<OutputStreamWrapper>> qSize_streamV(2, NULL);
 std::vector<Ptr<OutputStreamWrapper>> tc_qSize_streamV(2, NULL);
 
-uint64_t bottleneckTransimittedBytes;
-Ptr<OutputStreamWrapper> bottleneckTransimittedStream;
+std::vector<uint64_t> bottleneckTransimittedBytesV(numOfQueue, 0);
+std::vector<Ptr<OutputStreamWrapper>> bottleneckTransimittedStreamV(numOfQueue);
 
 uint64_t droppedPackets;
 Ptr<OutputStreamWrapper> dropped_stream;
@@ -252,8 +252,8 @@ static void RxDrop(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p) {
     droppedPackets++;
 }
 
-static void TxPacket(Ptr<const Packet> p) {
-    bottleneckTransimittedBytes += p->GetSize();
+static void TxPacket(int queueIdx, Ptr<const Packet> p) {
+    bottleneckTransimittedBytesV[queueIdx] += p->GetSize();
 }
 
 static void TraceDroppedPacket(std::string dropped_trace_filename) {
@@ -284,14 +284,12 @@ static void TraceDroppedPkts() {
         << Simulator::Now().GetSeconds() << "\t" << droppedPackets << std::endl;
 }
 
-static void TraceBottleneckTx() {
-    *bottleneckTransimittedStream->GetStream() << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimittedBytes << std::endl;
+static void TraceBottleneckTx(int queueIdx) {
+  *(bottleneckTransimittedStreamV[queueIdx])->GetStream() << Simulator::Now().GetSeconds() << "\t" << bottleneckTransimittedBytesV[queueIdx] << std::endl;
 }
 
-void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
-        uint32_t newVal) {
-    *stream->GetStream() << Simulator::Now().GetSeconds() << " "
-        << newVal / segmentSize << std::endl;
+void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal, uint32_t newVal) {
+    *stream->GetStream() << Simulator::Now().GetSeconds() << " " << newVal / segmentSize << std::endl;
 }
 
 // based on queue index plot q size changes
@@ -309,9 +307,12 @@ static void StartTracingQueueSize(int queueIdx) {
     }
 }
 
-static void StartTracingTransmitedPacket() {
-  bottleneckTransimittedBytes = 0; // FIXME: depending on queue trace different packets
-    Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeCallback(&TxPacket));
+static void StartTracingTransmitedPacket(int queueIdx) {
+  bottleneckTransimittedBytesV[queueIdx] = 0; // FIXME: depending on queue trace different packets
+  if(queueIdx == Q_FIRST)
+    Config::ConnectWithoutContext("/NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeBoundCallback(&TxPacket, queueIdx));
+  else if(queueIdx == Q_SECOND)
+    Config::ConnectWithoutContext("/NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/PhyTxEnd", MakeBoundCallback(&TxPacket, queueIdx));
 }
 
 
@@ -354,7 +355,6 @@ double getBeta() {
 static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
     double oldVal = (double)oldval / segSize;
 
-    // FIXME: check with swarnarup
     if(node < 60) // for first queue only 60 source nodes
        sumWin[Q_FIRST] += (oldVal - prevWin[node]); 
 
@@ -532,7 +532,7 @@ int main(int argc, char *argv[])
     std::string bottleneck2_delay = "1ms"; // bottleneck link has negligible propagation delay
     std::string access_bandwidth = "2Mbps";
     std::string root_dir;
-    std::string qsize_trace_filename = "qsizeTrace-";
+    std::string qsize_trace_filename = "qsizeTrace";
     std::string zc_trace_filename = "zeroCrossingTrace-dumbbell";
     std::string dropped_trace_filename = "droppedPacketTrace-dumbbell";
     std::string bottleneck_tx_filename = "bottleneckTx-dumbbell";
@@ -734,7 +734,9 @@ int main(int argc, char *argv[])
         std::string delay_str = std::to_string(delay) + "ms";
 
         // FIXME: write properdelay
-        *rtts->GetStream() << i << " " << delay * 4 << std::endl;
+        *rtts->GetStream() << i+3 << " " << delay * 4 << std::endl;
+        *rtts->GetStream() << (1*nNodes) + i+3 << " " << delay * 4 << std::endl;
+        *rtts->GetStream() << (2*nNodes) + i+3 << " " << delay * 4 << std::endl;
 
         p2p_s1[i].SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
         p2p_s1[i].SetChannelAttribute("Delay", StringValue(delay_str));
@@ -1006,8 +1008,9 @@ int main(int argc, char *argv[])
 
     // Configuring file stream to write the no of packets transmitted by the
     // bottleneck
-    AsciiTraceHelper ascii_qsize_tx;
-    bottleneckTransimittedStream = ascii_qsize_tx.CreateFileStream(dir + bottleneck_tx_filename + ".txt");
+    AsciiTraceHelper ascii_qsize_tx1, ascii_qsize_tx2;
+    bottleneckTransimittedStreamV[Q_FIRST] = ascii_qsize_tx1.CreateFileStream(dir + bottleneck_tx_filename + "-1.txt");
+    bottleneckTransimittedStreamV[Q_SECOND] = ascii_qsize_tx2.CreateFileStream(dir + bottleneck_tx_filename + "-1.txt");
 
     AsciiTraceHelper ascii_dropped;
     dropped_stream = ascii_dropped.CreateFileStream(dir + dropped_trace_filename + ".txt");
@@ -1018,7 +1021,8 @@ int main(int argc, char *argv[])
     Simulator::Schedule(Seconds(stime), &start_tracing_timeCwnd, totalSourceNodes);
     Simulator::Schedule(Seconds(stime), &StartTracingQueueSize, Q_FIRST);
     Simulator::Schedule(Seconds(stime), &StartTracingQueueSize, Q_SECOND);
-    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket); // FIXME: for each queue
+    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_FIRST); // FIXME: for each queue
+    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_SECOND); // FIXME: for each queue
     Simulator::Schedule(Seconds(stime), &updateCwndValues, totalSourceNodes);
 
     // start tracing Queue Size and Dropped Files
@@ -1031,7 +1035,8 @@ int main(int argc, char *argv[])
         Simulator::Schedule(Seconds(time), &TraceQueueSizeTc, Q_SECOND);
         Simulator::Schedule(Seconds(time), &TraceQueueSize, Q_FIRST);
         Simulator::Schedule(Seconds(time), &TraceQueueSize, Q_SECOND);
-        Simulator::Schedule(Seconds(time), &TraceBottleneckTx); // FIXME: give Q type also
+        Simulator::Schedule(Seconds(time), &TraceBottleneckTx, Q_FIRST); // FIXME: give Q type also
+        Simulator::Schedule(Seconds(time), &TraceBottleneckTx, Q_SECOND); // FIXME: give Q type also
         Simulator::Schedule(Seconds(time), &TraceDroppedPkts); // FIXME: not using this for now, but might need it in future
     }
 
