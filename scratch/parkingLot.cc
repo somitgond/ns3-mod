@@ -100,7 +100,7 @@ Ptr<OutputStreamWrapper> dropped_stream;
 // vector containing queue discs
 std::vector<Ptr<QueueDisc>> queueDiscV(2, CreateObject<FifoQueueDisc>());
 
-std::vector<double> betaV = {0.48, 0.48};
+std::vector<double> betaV = {0.63, 0.75};
 
 // find zero crossings in autocorrelation in queue data
 uint32_t Q_WINDOW = 50;
