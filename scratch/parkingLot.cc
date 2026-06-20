@@ -77,7 +77,7 @@ uint32_t bytes_to_send = 100000000;                    // 0 for unbounded
 double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
-std::vector<bool> AQM_ENABLED(numOfQueue, 0); // 0: if we want to run our aqm, 1: don't run our aqm
+std::vector<bool> AQM_ENABLED_V(numOfQueue, 0); // 0: if we want to run our aqm, 1: don't run our aqm
 
 // store parameters in a file
 Ptr<OutputStreamWrapper> parameters;
@@ -412,16 +412,16 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
             if(qth >= 2084)std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
             // AQM will be triggered only once
             if ((Simulator::Now().GetSeconds() > 100) && (ta < ZC_THRE) &&
-                    (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+                    (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED_V == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
                 SetQueueSize(qth, Q_FIRST); // FIXME:: determine which queue to set queue size to
                 *parameters->GetStream() << "AQM triggered with qth: " <<qth
                     << " w* : " << sumWin/nNodes << " beta: "<< getBeta()<< std::endl;
                 *zc_stream->GetStream()
                     << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
-                AQM_ENABLED = 1; // reset the flag
+                AQM_ENABLED_V = 1; // reset the flag
                 NS_LOG_UNCOND("----------------------DONE!!");
                 NS_LOG_UNCOND("--------BETA: " << getBeta() << "-------");
-                NS_LOG_UNCOND("--------AQM_ENABLED: " << AQM_ENABLED << "-------");
+                NS_LOG_UNCOND("--------AQM_ENABLED_V: " << AQM_ENABLED_V << "-------");
                 zerocrossings_data.clear(); // clear zero crossing data after aqm is enabled
             }
         }
@@ -445,7 +445,7 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
         if(qth >= 2084) std::cout<<"!!! qth anomaly with qth:"<<qth<<std::endl;
         // AQM will be triggered only once
         if ((Simulator::Now().GetSeconds() > 150) && (ta < ZC_THRE) &&
-            (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
+            (tb < ZC_THRE) && (tc < ZC_THRE) && (AQM_ENABLED_V[queueIdx] == 0) && (queue_disc == "ns3::FifoQueueDisc")) {
           SetQueueSize(qth, queueIdx);
           *parameters->GetStream() << "AQM triggered with qth: " <<qth << 
             " w* : " << sumWin[queueIdx]/nNodes << " beta: "<< beta << std::endl;
@@ -455,8 +455,8 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 
           *zc_stream[queueIdx]->GetStream() << Simulator::Now().GetSeconds() << " " << -1 << std::endl;
 
-          AQM_ENABLED[queueIdx] = 1; // reset the flag
-          NS_LOG_UNCOND("--------AQM_ENABLED[" << queueIdx<<"]: " << AQM_ENABLED[queueIdx] << "-------");
+          AQM_ENABLED_V[queueIdx] = 1; // reset the flag
+          NS_LOG_UNCOND("--------AQM_ENABLED_V[" << queueIdx<<"]: " << AQM_ENABLED_V[queueIdx] << "-------");
 
           zerocrossings_data[queueIdx].clear(); // clear zero crossing data after aqm is enabled
         }
@@ -552,21 +552,25 @@ int main(int argc, char *argv[])
     cmd.AddValue("RTT", "Round Trip Time for a packet", RTT);
     cmd.AddValue("queue_disc", "Queue disc to use", queue_disc);
     cmd.AddValue("bytes_to_send", "Total bytes to send", bytes_to_send);
-    int aqm_enabled = 0;
-    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", aqm_enabled);
+    int AQM_ENABLED= 0;
+    cmd.AddValue("AQM_ENABLED", "To enable aqm or not", AQM_ENABLED);
+    cmd.Parse(argc, argv);
 
-    if(aqm_enabled)
+    if(AQM_ENABLED > 0)
     {
-      for(int i = 0; i < AQM_ENABLED.size(); i++) AQM_ENABLED[i] = 1;
+      for(int i = 0; i < AQM_ENABLED_V.size(); i++)
+      {
+        AQM_ENABLED_V[i] = 1;
+        NS_LOG_UNCOND("set: aqm[" << i<< "]: " <<AQM_ENABLED_V[i]);
+      }
     }
 
-    cmd.Parse(argc, argv);
     NS_LOG_UNCOND("Starting Simulation");
     NS_LOG_UNCOND("nNodes : " << nNodes);
     NS_LOG_UNCOND("RTT value : " << RTT);
     NS_LOG_UNCOND("Queue disc : " << queue_disc);
     NS_LOG_UNCOND("total bytes : " << bytes_to_send);
-    NS_LOG_UNCOND("AQM_ENABLED: " << aqm_enabled);
+    NS_LOG_UNCOND("AQM_ENABLED: " << AQM_ENABLED);
 
     Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(tcp_type_id));
     // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (4194304));
