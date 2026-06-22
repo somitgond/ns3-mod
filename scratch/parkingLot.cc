@@ -783,7 +783,9 @@ int main(int argc, char *argv[])
     NS_LOG_UNCOND("Attaching Network Devices on each container");
     // network device on each node
     NetDeviceContainer r1r2ND = p2p_router1.Install(r1r2);
+    r1r2ND.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&TxPacket, Q_FIRST));
     NetDeviceContainer r2r3ND = p2p_router2.Install(r2r3);
+    r2r3ND.Get(0)->TraceConnectWithoutContext("PhyTxEnd", MakeBoundCallback(&TxPacket, Q_SECOND));
 
     std::vector<NetDeviceContainer> S1ND_v, S2ND_v, S3ND_v, D1ND_v, D2ND_v, D3ND_v;
     for (uint32_t i = 0; i < nNodes; i++) {
@@ -1024,8 +1026,8 @@ int main(int argc, char *argv[])
     Simulator::Schedule(Seconds(stime), &start_tracing_timeCwnd, totalSourceNodes);
     Simulator::Schedule(Seconds(stime), &StartTracingQueueSize, Q_FIRST);
     Simulator::Schedule(Seconds(stime), &StartTracingQueueSize, Q_SECOND);
-    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_FIRST); 
-    Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_SECOND);
+    // Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_FIRST); 
+    // Simulator::Schedule(Seconds(stime), &StartTracingTransmitedPacket, Q_SECOND);
     Simulator::Schedule(Seconds(stime), &updateCwndValues, totalSourceNodes);
 
     // start tracing Queue Size and Dropped Files
