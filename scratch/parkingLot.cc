@@ -280,8 +280,7 @@ static void TraceQueueSize(int queueIdx) {
 }
 
 static void TraceDroppedPkts() {
-    *dropped_stream->GetStream()
-        << Simulator::Now().GetSeconds() << "\t" << droppedPackets << std::endl;
+    *dropped_stream->GetStream() << Simulator::Now().GetSeconds() << "\t" << droppedPackets << std::endl;
 }
 
 static void TraceBottleneckTx(int queueIdx) {
@@ -540,7 +539,7 @@ int main(int argc, char *argv[])
     std::string rttFileName = "RTTs";
 
     std::string parametersFileName = "parameters";
-    float stop_time = 2*500;
+    float stop_time = 700;
     float start_time = 0;
     float start_tracing_time = 5;
     bool enable_bot_trace = 0;
