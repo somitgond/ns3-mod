@@ -504,9 +504,10 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
             totCount++;
     }
 
-    if (totCount == nNodes)
+    if (totCount == totalSourceNodes)
     {
         std::cout << "All flows finished at " << Simulator::Now ().GetSeconds () << "s\n";
+        std::cout<<"Exiting " << std::endl;
         Simulator::Stop ();
     }
     else
@@ -951,7 +952,7 @@ int main(int argc, char *argv[])
         stime += gap;
     }
 
-#if 0
+#if 1
     // tracing total data sent in bulksend
     if(bytes_to_send > 0)
     {
