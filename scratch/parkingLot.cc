@@ -498,7 +498,7 @@ static void start_tracing_timeCwnd(uint32_t nNodes) {
 void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
 {
     int totCount = 0;
-    for (int i = 0; i < nNodes; i++)
+    for (int i = 0; i < totalSourceNodes; i++)
     {
         if (clientBytes[i] >= bytes_to_send) // still sending
             totCount++;
@@ -951,7 +951,6 @@ int main(int argc, char *argv[])
         double gap = expRandomVariable->GetValue();
         stime += gap;
     }
-
 #if 1
     // tracing total data sent in bulksend
     if(bytes_to_send > 0)
@@ -966,19 +965,20 @@ int main(int argc, char *argv[])
                 // Bind client ID into the callback
                 bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, i)); // trace total number of bytes sent so far
             }
+
             for(uint32_t j = 0; j < sourceAppsS2[i].GetN(); ++j)
             {
                 Ptr<BulkSendApplication> bulkApp = DynamicCast<BulkSendApplication>(sourceAppsS2[i].Get(j));
                 bulkApps.push_back (bulkApp);
                 // Bind client ID into the callback
-                bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, i)); // trace total number of bytes sent so far
+                bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, nNodes+i)); // trace total number of bytes sent so far
             }
             for(uint32_t j = 0; j < sourceAppsS3[i].GetN(); ++j)
             {
                 Ptr<BulkSendApplication> bulkApp = DynamicCast<BulkSendApplication>(sourceAppsS3[i].Get(j));
                 bulkApps.push_back (bulkApp);
                 // Bind client ID into the callback
-                bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, i)); // trace total number of bytes sent so far
+                bulkApp->TraceConnectWithoutContext( "Tx", MakeBoundCallback(&TxTrace, (2*nNodes)+i)); // trace total number of bytes sent so far
             }
         }
         Simulator::Schedule (Seconds (stime), &CheckCompletion, bulkApps);
