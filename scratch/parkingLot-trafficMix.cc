@@ -533,7 +533,7 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
       if (clientBytes[i] >= bytes_to_send) // still sending
         totCount++;
     }
-    NS_LOG_UNCOND("totalCount: "<<totCount<<"/"<<total_tcp_flows<<" | Bytes transferred: " << clientBytes[2]<<"/" << bytes_to_send);
+    // NS_LOG_UNCOND("totalCount: "<<totCount<<"/"<<total_tcp_flows<<" | Bytes transferred: " << clientBytes[2]<<"/" << bytes_to_send);
 
     if (totCount == total_tcp_flows)
     {
