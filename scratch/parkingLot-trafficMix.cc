@@ -73,7 +73,7 @@ uint32_t threshold = 10;
 uint32_t increment = 100;
 uint32_t nNodes = 30; // 60 + 60 [source] -> 60 + 60 [destination
 uint32_t totalSourceNodes = nNodes *3;
-uint32_t bytes_to_send = 100000000;                    // 0 for unbounded
+uint32_t bytes_to_send = 10000000;                    // 0 for unbounded
 double cap, Tao, rtt_global;
 std::string queue_disc = "ns3::FifoQueueDisc";
 
@@ -123,7 +123,7 @@ std::vector<uint32_t> numOfObs(numOfQueue, 0);
 std::vector<std::vector<double>> zerocrossings_data(numOfQueue, std::vector<double>());
 std::vector<Ptr<OutputStreamWrapper>> zc_stream(numOfQueue);
 
-std::vector<uint64_t> clientBytes(totalSourceNodes+1, -1);
+std::vector<uint64_t> clientBytes(totalSourceNodes+1, 0);
 
 void TxTrace (uint32_t clientId, Ptr<const Packet> p)
 {
@@ -348,7 +348,7 @@ void initiateArray() {
   uint32_t total_tcp_flows = 3* n_tcp_flows;
 
   cwnd = std::vector<uint32_t>(totalSourceNodes+1, 0);
-  clientBytes = std::vector<uint64_t>(totalSourceNodes+1, -1);
+  clientBytes = std::vector<uint64_t>(totalSourceNodes+1, 0);
   betas = std::vector<double>(totalSourceNodes+1, 0.5);
   countBeta = std::vector<double>(totalSourceNodes+1, 0);
   dipStarted = std::vector<bool>(totalSourceNodes+1, false);
@@ -490,18 +490,18 @@ static void CwndTracer(uint32_t node, uint32_t oldval, uint32_t newval) {
 // Update values as cwndChanges
 static void updateCwndValues(uint32_t nodes) {
     for (uint32_t i = 0; i < nodes; i++) {
-      if(i >= n_tcp_flows && i < n_tcp_flows + n_udp_flows) continue;
-      int idx = i+3;
-      std::string path = "/NodeList/" + std::to_string(i + 3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+      if(i >= n_tcp_flows) continue; // only track 
+      int idx = i;
+      std::string path = "/NodeList/" + std::to_string(idx + 3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
       Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
 
-      idx = nNodes+ i+3;
-      path = "/NodeList/" + std::to_string(i + 3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
-      Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
+      idx = nNodes + i;
+      path = "/NodeList/" + std::to_string(idx+3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+      Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, idx));
 
-      idx = (2*nNodes)+ i+3;
-      path = "/NodeList/" + std::to_string(i + 3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
-      Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, i));
+      idx = (2*nNodes) + i;
+      path = "/NodeList/" + std::to_string(idx+3) + "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+      Config::ConnectWithoutContext(path, MakeBoundCallback(&CwndTracer, idx));
     }
 }
 
@@ -529,10 +529,11 @@ void CheckCompletion (std::vector<Ptr<BulkSendApplication>> apps)
     int totCount = 0;
     for (int i = 0; i < totalSourceNodes; i++)
     {
-      if(clientBytes[i] == -1) continue;
+      if(clientBytes[i] == 0) continue;
       if (clientBytes[i] >= bytes_to_send) // still sending
         totCount++;
     }
+    NS_LOG_UNCOND("totalCount: "<<totCount<<"/"<<total_tcp_flows<<" | Bytes transferred: " << clientBytes[2]<<"/" << bytes_to_send);
 
     if (totCount == total_tcp_flows)
     {
